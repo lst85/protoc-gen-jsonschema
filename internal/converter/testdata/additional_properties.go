@@ -7,7 +7,7 @@ const AdditionalProperties = `{
             "type": "string"
         },
         "message": {
-            "$ref": "samples.AdditionalProperties.NestedMessage",
+            "$ref": "#/definitions/samples.AdditionalProperties.NestedMessage",
             "additionalProperties": {},
             "type": "object"
         },
@@ -20,7 +20,7 @@ const AdditionalProperties = `{
         "repeated_message": {
             "items": {
                 "$schema": "http://json-schema.org/draft-04/schema#",
-                "$ref": "samples.AdditionalProperties.NestedMessage"
+                "$ref": "#/definitions/samples.AdditionalProperties.NestedMessage"
             },
             "type": "array"
         }

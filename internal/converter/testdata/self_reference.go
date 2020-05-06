@@ -2,7 +2,7 @@ package testdata
 
 const SelfReference = `{
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "Foo",
+    "$ref": "#/definitions/Foo",
     "definitions": {
         "Foo": {
             "$schema": "http://json-schema.org/draft-04/schema#",
@@ -13,7 +13,7 @@ const SelfReference = `{
                 "bar": {
                     "items": {
                         "$schema": "http://json-schema.org/draft-04/schema#",
-                        "$ref": "Foo"
+                        "$ref": "#/definitions/Foo"
                     },
                     "type": "array"
                 }

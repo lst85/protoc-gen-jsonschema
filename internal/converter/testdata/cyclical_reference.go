@@ -5,7 +5,7 @@ const (
     "$schema": "http://json-schema.org/draft-04/schema#",
     "properties": {
         "foo": {
-            "$ref": "samples.Foo",
+            "$ref": "#/definitions/samples.Foo",
             "additionalProperties": true,
             "type": "object"
         }
@@ -32,7 +32,7 @@ const (
                                         "type": "boolean"
                                     },
                                     "foo": {
-                                        "$ref": "samples.Foo",
+                                        "$ref": "#/definitions/samples.Foo",
                                         "additionalProperties": true,
                                         "type": "object"
                                     }
@@ -56,7 +56,7 @@ const (
 
 	CyclicalReferenceMessageFoo = `{
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "Foo",
+    "$ref": "#/definitions/Foo",
     "definitions": {
         "Foo": {
             "$schema": "http://json-schema.org/draft-04/schema#",
@@ -77,7 +77,7 @@ const (
                                         "type": "boolean"
                                     },
                                     "foo": {
-                                        "$ref": "Foo",
+                                        "$ref": "#/definitions/Foo",
                                         "additionalProperties": true,
                                         "type": "object"
                                     }
@@ -101,7 +101,7 @@ const (
 
 	CyclicalReferenceMessageBar = `{
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "Bar",
+    "$ref": "#/definitions/Bar",
     "definitions": {
         "Bar": {
             "$schema": "http://json-schema.org/draft-04/schema#",
@@ -122,7 +122,7 @@ const (
                                 "bar": {
                                     "items": {
                                         "$schema": "http://json-schema.org/draft-04/schema#",
-                                        "$ref": "Bar"
+                                        "$ref": "#/definitions/Bar"
                                     },
                                     "type": "array"
                                 }
@@ -144,7 +144,7 @@ const (
 
 	CyclicalReferenceMessageBaz = `{
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "Baz",
+    "$ref": "#/definitions/Baz",
     "definitions": {
         "Baz": {
             "$schema": "http://json-schema.org/draft-04/schema#",
@@ -165,7 +165,7 @@ const (
                                         "type": "integer"
                                     },
                                     "baz": {
-                                        "$ref": "Baz",
+                                        "$ref": "#/definitions/Baz",
                                         "additionalProperties": true,
                                         "type": "object"
                                     }

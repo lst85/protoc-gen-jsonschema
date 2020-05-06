@@ -35,14 +35,14 @@ const EnumCeption = `{
             ]
         },
         "payload": {
-            "$ref": "samples.PayloadMessage",
+            "$ref": "#/definitions/samples.PayloadMessage",
             "additionalProperties": true,
             "type": "object"
         },
         "payloads": {
             "items": {
                 "$schema": "http://json-schema.org/draft-04/schema#",
-                "$ref": "samples.PayloadMessage"
+                "$ref": "#/definitions/samples.PayloadMessage"
             },
             "type": "array"
         },
