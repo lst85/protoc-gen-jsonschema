@@ -159,12 +159,6 @@ func (c *Converter) convertField(curPkg *ProtoPackage, desc *descriptor.FieldDes
 	case descriptor.FieldDescriptorProto_TYPE_GROUP,
 		descriptor.FieldDescriptorProto_TYPE_MESSAGE:
 		jsonSchemaType.Type = gojsonschema.TYPE_OBJECT
-		if desc.GetLabel() == descriptor.FieldDescriptorProto_LABEL_OPTIONAL {
-			jsonSchemaType.AdditionalProperties = []byte("true")
-		}
-		if desc.GetLabel() == descriptor.FieldDescriptorProto_LABEL_REQUIRED {
-			jsonSchemaType.AdditionalProperties = []byte("false")
-		}
 
 	default:
 		return nil, fmt.Errorf("unrecognized field type: %s", desc.GetType().String())
@@ -375,11 +369,22 @@ func (c *Converter) recursiveConvertMessageType(curPkg *ProtoPackage, msg *descr
 		jsonSchemaType.Type = gojsonschema.TYPE_OBJECT
 	}
 
-	// disallowAdditionalProperties will prevent validation where extra fields are found (outside of the schema):
-	if c.DisallowAdditionalProperties {
-		jsonSchemaType.AdditionalProperties = []byte("false")
+	// disallowAdditionalProperties will prevent validation where extra fields are found (outside of the schema).
+	// The specification of additionalProperties is different in OpenAPI compared to JSON schema:
+	// 1. Default when additionalProperties is not provided:
+	//		JSON schema: all additional properties allowed
+	//		OpenAPI: no additional properties allowed
+	// 2. Some OpenAPI implementations do not allow boolean values.
+	if c.OpenApiConform {
+		if !c.DisallowAdditionalProperties {
+			jsonSchemaType.AdditionalProperties = []byte("{}")
+		}
 	} else {
-		jsonSchemaType.AdditionalProperties = []byte("true")
+		if c.DisallowAdditionalProperties {
+			jsonSchemaType.AdditionalProperties = []byte("false")
+		} else {
+			jsonSchemaType.AdditionalProperties = []byte("true")
+		}
 	}
 
 	c.logger.WithField("message_str", proto.MarshalTextString(msg)).Trace("Converting message")

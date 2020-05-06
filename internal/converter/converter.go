@@ -21,6 +21,7 @@ type Converter struct {
 	DisallowAdditionalProperties bool
 	DisallowBigIntsAsStrings     bool
 	UseProtoAndJSONFieldnames    bool
+	OpenApiConform               bool
 	logger                       *logrus.Logger
 	sourceInfo                   *sourceCodeInfo
 }
@@ -58,6 +59,7 @@ func (c *Converter) ConvertFrom(rd io.Reader) (*plugin.CodeGeneratorResponse, er
 func (c *Converter) parseGeneratorParameters(parameters string) {
 	for _, parameter := range strings.Split(parameters, ",") {
 		switch parameter {
+		case "": // ignore empty parameter
 		case "allow_null_values":
 			c.AllowNullValues = true
 		case "debug":
@@ -68,6 +70,10 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 			c.DisallowBigIntsAsStrings = true
 		case "proto_and_json_fieldnames":
 			c.UseProtoAndJSONFieldnames = true
+		case "open_api_conform":
+			c.OpenApiConform = true
+		default:
+			c.logger.WithField("parameter", parameter).Warn("Unknown parameter")
 		}
 	}
 }
