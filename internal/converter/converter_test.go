@@ -23,6 +23,8 @@ var (
 
 type sampleProto struct {
 	AllowNullValues           bool
+	DisallowNumericEnumValues bool
+	OpenApiConform            bool
 	ExpectedJSONSchema        []string
 	FilesToGenerate           []string
 	ProtoFileName             string
@@ -35,12 +37,14 @@ func TestGenerateJsonSchema(t *testing.T) {
 	configureSampleProtos()
 
 	// Convert the protos, compare the results against the expected JSON-Schemas:
+	testConvertSampleProto(t, sampleProtos["AdditionalProperties"])
 	testConvertSampleProto(t, sampleProtos["Comments"])
 	testConvertSampleProto(t, sampleProtos["ArrayOfMessages"])
 	testConvertSampleProto(t, sampleProtos["ArrayOfObjects"])
 	testConvertSampleProto(t, sampleProtos["ArrayOfPrimitives"])
 	testConvertSampleProto(t, sampleProtos["ArrayOfPrimitivesDouble"])
 	testConvertSampleProto(t, sampleProtos["EnumCeption"])
+	testConvertSampleProto(t, sampleProtos["EnumNoNumericValues"])
 	testConvertSampleProto(t, sampleProtos["ImportedEnum"])
 	testConvertSampleProto(t, sampleProtos["NestedMessage"])
 	testConvertSampleProto(t, sampleProtos["NestedObject"])
@@ -63,6 +67,8 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 	// Use the logger to make a Converter:
 	protoConverter := New(logger)
 	protoConverter.AllowNullValues = sampleProto.AllowNullValues
+	protoConverter.DisallowNumericEnumValues = sampleProto.DisallowNumericEnumValues
+	protoConverter.OpenApiConform = sampleProto.OpenApiConform
 	protoConverter.UseProtoAndJSONFieldnames = sampleProto.UseProtoAndJSONFieldNames
 
 	// Open the sample proto file:
@@ -90,6 +96,15 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 }
 
 func configureSampleProtos() {
+	// AdditionalProperties:
+	sampleProtos["AdditionalProperties"] = sampleProto{
+		OpenApiConform:     true,
+		AllowNullValues:    false,
+		ExpectedJSONSchema: []string{testdata.AdditionalProperties},
+		FilesToGenerate:    []string{"AdditionalProperties.proto"},
+		ProtoFileName:      "AdditionalProperties.proto",
+	}
+
 	// ArrayOfMessages:
 	sampleProtos["ArrayOfMessages"] = sampleProto{
 		AllowNullValues:    false,
@@ -129,6 +144,15 @@ func configureSampleProtos() {
 		ExpectedJSONSchema: []string{testdata.PayloadMessage, testdata.ImportedEnum, testdata.EnumCeption},
 		FilesToGenerate:    []string{"Enumception.proto", "PayloadMessage.proto", "ImportedEnum.proto"},
 		ProtoFileName:      "Enumception.proto",
+	}
+
+	// EnumCeption:
+	sampleProtos["EnumNoNumericValues"] = sampleProto{
+		AllowNullValues:           false,
+		DisallowNumericEnumValues: true,
+		ExpectedJSONSchema:        []string{testdata.EnumNoNumericValues},
+		FilesToGenerate:           []string{"EnumNoNumericValues.proto"},
+		ProtoFileName:             "EnumNoNumericValues.proto",
 	}
 
 	// ImportedEnum:

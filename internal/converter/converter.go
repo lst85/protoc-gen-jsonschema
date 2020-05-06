@@ -20,8 +20,9 @@ type Converter struct {
 	AllowNullValues              bool
 	DisallowAdditionalProperties bool
 	DisallowBigIntsAsStrings     bool
-	UseProtoAndJSONFieldnames    bool
+	DisallowNumericEnumValues    bool
 	OpenApiConform               bool
+	UseProtoAndJSONFieldnames    bool
 	logger                       *logrus.Logger
 	sourceInfo                   *sourceCodeInfo
 }
@@ -68,10 +69,12 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 			c.DisallowAdditionalProperties = true
 		case "disallow_bigints_as_strings":
 			c.DisallowBigIntsAsStrings = true
-		case "proto_and_json_fieldnames":
-			c.UseProtoAndJSONFieldnames = true
+		case "disallow_numeric_enum_values":
+			c.DisallowNumericEnumValues = true
 		case "open_api_conform":
 			c.OpenApiConform = true
+		case "proto_and_json_fieldnames":
+			c.UseProtoAndJSONFieldnames = true
 		default:
 			c.logger.WithField("parameter", parameter).Warn("Unknown parameter")
 		}
@@ -91,14 +94,14 @@ func (c *Converter) convertEnumType(enum *descriptor.EnumDescriptorProto) (jsons
 		jsonSchemaType.Description = formatDescription(src)
 	}
 
-	// Allow both strings and integers:
-	jsonSchemaType.OneOf = append(jsonSchemaType.OneOf, &jsonschema.Type{Type: "string"})
-	jsonSchemaType.OneOf = append(jsonSchemaType.OneOf, &jsonschema.Type{Type: "integer"})
+	c.setJsonTypeForEnum(&jsonSchemaType)
 
 	// Add the allowed values:
 	for _, enumValue := range enum.Value {
 		jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Name)
-		jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
+		if !c.DisallowNumericEnumValues {
+			jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
+		}
 	}
 
 	return jsonSchemaType, nil

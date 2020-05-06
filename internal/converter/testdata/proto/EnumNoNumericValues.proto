@@ -1,0 +1,18 @@
+syntax = "proto3";
+package samples;
+
+message EnumNoNumericValuesMsg {
+    string description = 1;
+    enum inline {
+        FOO = 0;
+        BAR = 1;
+        FIZZ = 2;
+        BUZZ = 3;
+    }
+    inline stuff = 2;
+}
+
+enum EnumNoNumericValuesEnum {
+    FRR = 0;
+    FRA = 1;
+}

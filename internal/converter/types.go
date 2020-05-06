@@ -123,11 +123,7 @@ func (c *Converter) convertField(curPkg *ProtoPackage, desc *descriptor.FieldDes
 		}
 
 	case descriptor.FieldDescriptorProto_TYPE_ENUM:
-		jsonSchemaType.OneOf = append(jsonSchemaType.OneOf, &jsonschema.Type{Type: gojsonschema.TYPE_STRING})
-		jsonSchemaType.OneOf = append(jsonSchemaType.OneOf, &jsonschema.Type{Type: gojsonschema.TYPE_INTEGER})
-		if c.AllowNullValues {
-			jsonSchemaType.OneOf = append(jsonSchemaType.OneOf, &jsonschema.Type{Type: gojsonschema.TYPE_NULL})
-		}
+		c.setJsonTypeForEnum(jsonSchemaType)
 
 		// Go through all the enums we have, see if we can match any to this field by name:
 		for _, enumDescriptor := range msg.GetEnumType() {
@@ -141,7 +137,9 @@ func (c *Converter) convertField(curPkg *ProtoPackage, desc *descriptor.FieldDes
 				// If we find ENUM values for this field then put them into the JSONSchema list of allowed ENUM values:
 				if strings.HasSuffix(desc.GetTypeName(), fullFieldName) {
 					jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Name)
-					jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
+					if !c.DisallowNumericEnumValues {
+						jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
+					}
 				}
 			}
 		}
@@ -235,6 +233,7 @@ func (c *Converter) convertField(curPkg *ProtoPackage, desc *descriptor.FieldDes
 		default:
 			jsonSchemaType.Properties = recursedJSONSchemaType.Properties
 			jsonSchemaType.Ref = recursedJSONSchemaType.Ref
+			jsonSchemaType.AdditionalProperties = c.getAdditionalPropertiesValue()
 		}
 
 		// Optionally allow NULL values:
@@ -369,23 +368,7 @@ func (c *Converter) recursiveConvertMessageType(curPkg *ProtoPackage, msg *descr
 		jsonSchemaType.Type = gojsonschema.TYPE_OBJECT
 	}
 
-	// disallowAdditionalProperties will prevent validation where extra fields are found (outside of the schema).
-	// The specification of additionalProperties is different in OpenAPI compared to JSON schema:
-	// 1. Default when additionalProperties is not provided:
-	//		JSON schema: all additional properties allowed
-	//		OpenAPI: no additional properties allowed
-	// 2. Some OpenAPI implementations do not allow boolean values.
-	if c.OpenApiConform {
-		if !c.DisallowAdditionalProperties {
-			jsonSchemaType.AdditionalProperties = []byte("{}")
-		}
-	} else {
-		if c.DisallowAdditionalProperties {
-			jsonSchemaType.AdditionalProperties = []byte("false")
-		} else {
-			jsonSchemaType.AdditionalProperties = []byte("true")
-		}
-	}
+	jsonSchemaType.AdditionalProperties = c.getAdditionalPropertiesValue()
 
 	c.logger.WithField("message_str", proto.MarshalTextString(msg)).Trace("Converting message")
 	for _, fieldDesc := range msg.GetField() {
@@ -423,4 +406,42 @@ func formatDescription(sl *descriptor.SourceCodeInfo_Location) string {
 		lines = append(lines, s)
 	}
 	return strings.Join(lines, "\n\n")
+}
+
+// disallowAdditionalProperties will prevent validation where extra fields are found (outside of the schema).
+// The specification of additionalProperties is different in OpenAPI compared to JSON schema:
+// 1. Default when additionalProperties is not provided:
+//		JSON schema: all additional properties allowed
+//		OpenAPI: no additional properties allowed
+// 2. Some OpenAPI implementations do not allow boolean values.
+func (c *Converter) getAdditionalPropertiesValue() []byte {
+	if c.OpenApiConform {
+		if !c.DisallowAdditionalProperties {
+			return []byte("{}")
+		}
+		return nil
+	}
+
+	if c.DisallowAdditionalProperties {
+		return []byte("false")
+	}
+	return []byte("true")
+}
+
+func (c *Converter) setJsonTypeForEnum(jsonSchemaType *jsonschema.Type) {
+	types := []string{gojsonschema.TYPE_STRING}
+	if !c.DisallowNumericEnumValues {
+		types = append(types, gojsonschema.TYPE_INTEGER)
+	}
+	if c.AllowNullValues {
+		types = append(types, gojsonschema.TYPE_NULL)
+	}
+
+	if len(types) == 1 {
+		jsonSchemaType.Type = types[0]
+	} else {
+		for i := range types {
+			jsonSchemaType.OneOf = append(jsonSchemaType.OneOf, &jsonschema.Type{Type: types[i]})
+		}
+	}
 }

@@ -9,4 +9,6 @@ message AdditionalProperties {
     }
 
     NestedMessage message = 2;
+    repeated int32 repeated_primitive = 3;
+    repeated NestedMessage repeated_message = 4;
 }
