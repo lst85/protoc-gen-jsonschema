@@ -1,0 +1,12 @@
+syntax = "proto3";
+package samples;
+
+message AdditionalProperties {
+    string key = 1;
+
+    message NestedMessage {
+        string nested_key = 1;
+    }
+
+    NestedMessage message = 2;
+}
