@@ -3,16 +3,28 @@ package samples;
 
 message EnumNoNumericValuesMsg {
     string description = 1;
-    enum inline {
+    enum InlineEnum {
         FOO = 0;
         BAR = 1;
         FIZZ = 2;
         BUZZ = 3;
     }
-    inline stuff = 2;
+    InlineEnum stuff = 2;
+    EnumNoNumericValuesMsg2.NestedEnum nestedEnum = 3;
+    EnumNoNumericValuesTopLevelEnum topLevelEnum = 4;
 }
 
-enum EnumNoNumericValuesEnum {
+message EnumNoNumericValuesMsg2 {
+    enum NestedEnum {
+        FOO = 0;
+        BAR = 1;
+        FIZZ = 2;
+        BUZZ = 3;
+        BIZZ = 4;
+    }
+}
+
+enum EnumNoNumericValuesTopLevelEnum {
     FRR = 0;
     FRA = 1;
 }

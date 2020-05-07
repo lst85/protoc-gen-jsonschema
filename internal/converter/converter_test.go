@@ -84,12 +84,14 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 	// Perform the conversion:
 	response, err := protoConverter.convert(&codeGeneratorRequest)
 	assert.NoError(t, err, "Unable to convert sample proto file (%v)", sampleProtoFileName)
-	assert.Equal(t, len(sampleProto.ExpectedJSONSchema), len(response.File), "Incorrect number of JSON-Schema files returned for sample proto file (%v)", sampleProtoFileName)
+	assert.Equal(t, len(sampleProto.ExpectedJSONSchema), len(response.File),
+		"Incorrect number of JSON-Schema files returned for sample proto file (%v)", sampleProtoFileName)
 	if len(sampleProto.ExpectedJSONSchema) != len(response.File) {
 		t.Fail()
 	} else {
 		for responseFileIndex, responseFile := range response.File {
-			assert.Equal(t, sampleProto.ExpectedJSONSchema[responseFileIndex], *responseFile.Content, "Incorrect JSON-Schema returned for sample proto file (%v)", sampleProtoFileName)
+			assert.Equal(t, sampleProto.ExpectedJSONSchema[responseFileIndex], *responseFile.Content,
+				"Incorrect JSON-Schema returned for sample proto file (%v)", sampleProtoFileName)
 		}
 	}
 
@@ -150,9 +152,10 @@ func configureSampleProtos() {
 	sampleProtos["EnumNoNumericValues"] = sampleProto{
 		AllowNullValues:           false,
 		DisallowNumericEnumValues: true,
-		ExpectedJSONSchema:        []string{testdata.EnumNoNumericValues},
-		FilesToGenerate:           []string{"EnumNoNumericValues.proto"},
-		ProtoFileName:             "EnumNoNumericValues.proto",
+		ExpectedJSONSchema: []string{testdata.EnumNoNumericValuesTopLevelEnum, testdata.EnumNoNumericValuesMsg,
+			testdata.EnumNoNumericValuesMsg2},
+		FilesToGenerate: []string{"EnumNoNumericValues.proto"},
+		ProtoFileName:   "EnumNoNumericValues.proto",
 	}
 
 	// ImportedEnum:
@@ -236,9 +239,10 @@ func configureSampleProtos() {
 
 	// Messages that depend on one another so as to form a cycle (see https://github.com/chrusty/protoc-gen-jsonschema/issues/20)
 	sampleProtos["CyclicalReference"] = sampleProto{
-		ExpectedJSONSchema: []string{testdata.CyclicalReferenceMessageM, testdata.CyclicalReferenceMessageFoo, testdata.CyclicalReferenceMessageBar, testdata.CyclicalReferenceMessageBaz},
-		FilesToGenerate:    []string{"CyclicalReference.proto"},
-		ProtoFileName:      "CyclicalReference.proto",
+		ExpectedJSONSchema: []string{testdata.CyclicalReferenceMessageM, testdata.CyclicalReferenceMessageFoo,
+			testdata.CyclicalReferenceMessageBar, testdata.CyclicalReferenceMessageBaz},
+		FilesToGenerate: []string{"CyclicalReference.proto"},
+		ProtoFileName:   "CyclicalReference.proto",
 	}
 }
 

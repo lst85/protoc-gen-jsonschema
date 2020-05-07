@@ -126,6 +126,7 @@ func (c *Converter) convertField(curPkg *ProtoPackage, desc *descriptor.FieldDes
 		c.setJsonTypeForEnum(jsonSchemaType)
 
 		// Go through all the enums we have, see if we can match any to this field by name:
+		// TODO: Here is a bug! msg.GetEnumType only finds enums that are nested inside the message!
 		for _, enumDescriptor := range msg.GetEnumType() {
 
 			// Each one has several values:

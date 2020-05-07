@@ -125,63 +125,61 @@ func (c *Converter) convertFile(file *descriptor.FileDescriptorProto) ([]*plugin
 	}
 
 	// Generate standalone ENUMs:
-	if len(file.GetMessageType()) == 0 {
-		for _, enum := range file.GetEnumType() {
-			jsonSchemaFileName := fmt.Sprintf("%s.schema.json", enum.GetName())
-			c.logger.WithField("proto_filename", protoFileName).WithField("enum_name", enum.GetName()).WithField("jsonschema_filename", jsonSchemaFileName).Info("Generating JSON-schema for stand-alone ENUM")
+	for _, enum := range file.GetEnumType() {
+		jsonSchemaFileName := fmt.Sprintf("%s.schema.json", enum.GetName())
+		c.logger.WithField("proto_filename", protoFileName).WithField("enum_name", enum.GetName()).WithField("jsonschema_filename", jsonSchemaFileName).Info("Generating JSON-schema for stand-alone ENUM")
 
-			// Convert the ENUM:
-			enumJSONSchema, err := c.convertEnumType(enum)
-			if err != nil {
-				c.logger.WithError(err).WithField("proto_filename", protoFileName).Error("Failed to convert")
-				return nil, err
-			}
-
-			// Marshal the JSON-Schema into JSON:
-			jsonSchemaJSON, err := json.MarshalIndent(enumJSONSchema, "", "    ")
-			if err != nil {
-				c.logger.WithError(err).Error("Failed to encode jsonSchema")
-				return nil, err
-			}
-
-			// Add a response:
-			resFile := &plugin.CodeGeneratorResponse_File{
-				Name:    proto.String(jsonSchemaFileName),
-				Content: proto.String(string(jsonSchemaJSON)),
-			}
-			response = append(response, resFile)
+		// Convert the ENUM:
+		enumJSONSchema, err := c.convertEnumType(enum)
+		if err != nil {
+			c.logger.WithError(err).WithField("proto_filename", protoFileName).Error("Failed to convert")
+			return nil, err
 		}
-	} else {
-		// Otherwise process MESSAGES (packages):
-		pkg, ok := c.relativelyLookupPackage(globalPkg, file.GetPackage())
-		if !ok {
-			return nil, fmt.Errorf("no such package found: %s", file.GetPackage())
+
+		// Marshal the JSON-Schema into JSON:
+		jsonSchemaJSON, err := json.MarshalIndent(enumJSONSchema, "", "    ")
+		if err != nil {
+			c.logger.WithError(err).Error("Failed to encode jsonSchema")
+			return nil, err
 		}
-		for _, msg := range file.GetMessageType() {
-			jsonSchemaFileName := fmt.Sprintf("%s.schema.json", msg.GetName())
-			c.logger.WithField("proto_filename", protoFileName).WithField("msg_name", msg.GetName()).WithField("jsonschema_filename", jsonSchemaFileName).Info("Generating JSON-schema for MESSAGE")
 
-			// Convert the message:
-			messageJSONSchema, err := c.convertMessageType(pkg, msg)
-			if err != nil {
-				c.logger.WithError(err).WithField("proto_filename", protoFileName).Error("Failed to convert")
-				return nil, err
-			}
-
-			// Marshal the JSON-Schema into JSON:
-			jsonSchemaJSON, err := json.MarshalIndent(messageJSONSchema, "", "    ")
-			if err != nil {
-				c.logger.WithError(err).Error("Failed to encode jsonSchema")
-				return nil, err
-			}
-
-			// Add a response:
-			resFile := &plugin.CodeGeneratorResponse_File{
-				Name:    proto.String(jsonSchemaFileName),
-				Content: proto.String(string(jsonSchemaJSON)),
-			}
-			response = append(response, resFile)
+		// Add a response:
+		resFile := &plugin.CodeGeneratorResponse_File{
+			Name:    proto.String(jsonSchemaFileName),
+			Content: proto.String(string(jsonSchemaJSON)),
 		}
+		response = append(response, resFile)
+	}
+
+	// Process MESSAGES (packages):
+	pkg, ok := c.relativelyLookupPackage(globalPkg, file.GetPackage())
+	if !ok {
+		return nil, fmt.Errorf("no such package found: %s", file.GetPackage())
+	}
+	for _, msg := range file.GetMessageType() {
+		jsonSchemaFileName := fmt.Sprintf("%s.schema.json", msg.GetName())
+		c.logger.WithField("proto_filename", protoFileName).WithField("msg_name", msg.GetName()).WithField("jsonschema_filename", jsonSchemaFileName).Info("Generating JSON-schema for MESSAGE")
+
+		// Convert the message:
+		messageJSONSchema, err := c.convertMessageType(pkg, msg)
+		if err != nil {
+			c.logger.WithError(err).WithField("proto_filename", protoFileName).Error("Failed to convert")
+			return nil, err
+		}
+
+		// Marshal the JSON-Schema into JSON:
+		jsonSchemaJSON, err := json.MarshalIndent(messageJSONSchema, "", "    ")
+		if err != nil {
+			c.logger.WithError(err).Error("Failed to encode jsonSchema")
+			return nil, err
+		}
+
+		// Add a response:
+		resFile := &plugin.CodeGeneratorResponse_File{
+			Name:    proto.String(jsonSchemaFileName),
+			Content: proto.String(string(jsonSchemaJSON)),
+		}
+		response = append(response, resFile)
 	}
 
 	return response, nil
