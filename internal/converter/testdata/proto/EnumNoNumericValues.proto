@@ -1,5 +1,5 @@
 syntax = "proto3";
-package samples;
+package samples.subpackage;
 
 message EnumNoNumericValuesMsg {
     string description = 1;

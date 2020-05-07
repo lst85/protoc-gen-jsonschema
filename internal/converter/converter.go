@@ -2,10 +2,10 @@ package converter
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"path"
 	"strings"
 
 	"github.com/alecthomas/jsonschema"
@@ -22,15 +22,18 @@ type Converter struct {
 	DisallowBigIntsAsStrings     bool
 	DisallowNumericEnumValues    bool
 	OpenApiConform               bool
+	SingleFile                   bool
 	UseProtoAndJSONFieldnames    bool
 	logger                       *logrus.Logger
 	sourceInfo                   *sourceCodeInfo
+	generatorPlan                *generatorPlan
 }
 
 // New returns a configured *Converter:
 func New(logger *logrus.Logger) *Converter {
 	return &Converter{
-		logger: logger,
+		logger:        logger,
+		generatorPlan: NewGeneratorPlan(),
 	}
 }
 
@@ -54,7 +57,6 @@ func (c *Converter) ConvertFrom(rd io.Reader) (*plugin.CodeGeneratorResponse, er
 
 	c.logger.Debug("Converting input")
 	return c.convert(req)
-	// return c.debugger(req)
 }
 
 func (c *Converter) parseGeneratorParameters(parameters string) {
@@ -71,6 +73,8 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 			c.DisallowBigIntsAsStrings = true
 		case "disallow_numeric_enum_values":
 			c.DisallowNumericEnumValues = true
+		case "single_file":
+			c.SingleFile = true
 		case "open_api_conform":
 			c.OpenApiConform = true
 		case "proto_and_json_fieldnames":
@@ -81,134 +85,154 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 	}
 }
 
-// Converts a proto "ENUM" into a JSON-Schema:
-func (c *Converter) convertEnumType(enum *descriptor.EnumDescriptorProto) (jsonschema.Type, error) {
+func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGeneratorResponse_File, error) {
+	typeInfos := c.generatorPlan.GetForJsonFilename(jsonSchemaFileName)
 
-	// Prepare a new jsonschema.Type for our eventual return value:
-	jsonSchemaType := jsonschema.Type{
-		Version: jsonschema.Version,
+	c.logger.WithField("file", jsonSchemaFileName).Info("Creating JSON schema file ...")
+
+	definitions := jsonschema.Definitions{}
+	jsonSchema := &jsonschema.Schema{
+		Definitions: definitions,
 	}
 
-	// Generate a description from src comments (if available)
-	if src := c.sourceInfo.GetEnum(enum); src != nil {
-		jsonSchemaType.Description = formatDescription(src)
-	}
+	for _, typeInfo := range typeInfos {
+		if typeInfo.GenerateAtTopLevel() {
+			if jsonSchema.Type != nil {
+				return nil, errors.New("Error while creating JSON Schema " + jsonSchemaFileName +
+					". JSON schema can only have one root type.")
+			}
 
-	c.setJsonTypeForEnum(&jsonSchemaType)
+			jsonType, err := c.recursiveConvertMessageType(typeInfo)
+			if err != nil {
+				return nil, err
+			}
+			jsonSchema.Type = jsonType
+		} else {
+			jsonType, err := c.recursiveConvertMessageType(typeInfo)
+			if err != nil {
+				return nil, err
+			}
 
-	// Add the allowed values:
-	for _, enumValue := range enum.Value {
-		jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Name)
-		if !c.DisallowNumericEnumValues {
-			jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
+			// need to give that schema an ID
+			typeId := typeInfo.GetProtoFQNName()
+			if jsonType.Extras == nil {
+				jsonType.Extras = make(map[string]interface{})
+			}
+			jsonType.Extras["id"] = typeId
+			jsonSchema.Definitions[typeId] = jsonType
 		}
 	}
 
-	return jsonSchemaType, nil
-}
-
-// Converts a proto file into a JSON-Schema:
-func (c *Converter) convertFile(file *descriptor.FileDescriptorProto) ([]*plugin.CodeGeneratorResponse_File, error) {
-
-	// Input filename:
-	protoFileName := path.Base(file.GetName())
-
-	// Prepare a list of responses:
-	response := []*plugin.CodeGeneratorResponse_File{}
-
-	// Warn about multiple messages / enums in files:
-	if len(file.GetMessageType()) > 1 {
-		c.logger.WithField("schemas", len(file.GetMessageType())).WithField("proto_filename", protoFileName).Warn("protoc-gen-jsonschema will create multiple MESSAGE schemas from one proto file")
+	// Marshal the JSON-Schema into JSON:
+	if jsonSchema.Type == nil {
+		jsonSchema.Type = &jsonschema.Type{}
 	}
-	if len(file.GetEnumType()) > 1 {
-		c.logger.WithField("schemas", len(file.GetMessageType())).WithField("proto_filename", protoFileName).Warn("protoc-gen-jsonschema will create multiple ENUM schemas from one proto file")
+	jsonSchemaJSON, err := json.MarshalIndent(jsonSchema, "", "    ")
+	if err != nil {
+		c.logger.WithError(err).Error("Failed to encode jsonSchema")
+		return nil, err
 	}
 
-	// Generate standalone ENUMs:
-	for _, enum := range file.GetEnumType() {
-		jsonSchemaFileName := fmt.Sprintf("%s.schema.json", enum.GetName())
-		c.logger.WithField("proto_filename", protoFileName).WithField("enum_name", enum.GetName()).WithField("jsonschema_filename", jsonSchemaFileName).Info("Generating JSON-schema for stand-alone ENUM")
-
-		// Convert the ENUM:
-		enumJSONSchema, err := c.convertEnumType(enum)
-		if err != nil {
-			c.logger.WithError(err).WithField("proto_filename", protoFileName).Error("Failed to convert")
-			return nil, err
-		}
-
-		// Marshal the JSON-Schema into JSON:
-		jsonSchemaJSON, err := json.MarshalIndent(enumJSONSchema, "", "    ")
-		if err != nil {
-			c.logger.WithError(err).Error("Failed to encode jsonSchema")
-			return nil, err
-		}
-
-		// Add a response:
-		resFile := &plugin.CodeGeneratorResponse_File{
-			Name:    proto.String(jsonSchemaFileName),
-			Content: proto.String(string(jsonSchemaJSON)),
-		}
-		response = append(response, resFile)
+	// Add a response:
+	resFile := &plugin.CodeGeneratorResponse_File{
+		Name:    proto.String(jsonSchemaFileName),
+		Content: proto.String(string(jsonSchemaJSON)),
 	}
 
-	// Process MESSAGES (packages):
-	pkg, ok := c.relativelyLookupPackage(globalPkg, file.GetPackage())
-	if !ok {
-		return nil, fmt.Errorf("no such package found: %s", file.GetPackage())
-	}
-	for _, msg := range file.GetMessageType() {
-		jsonSchemaFileName := fmt.Sprintf("%s.schema.json", msg.GetName())
-		c.logger.WithField("proto_filename", protoFileName).WithField("msg_name", msg.GetName()).WithField("jsonschema_filename", jsonSchemaFileName).Info("Generating JSON-schema for MESSAGE")
-
-		// Convert the message:
-		messageJSONSchema, err := c.convertMessageType(pkg, msg)
-		if err != nil {
-			c.logger.WithError(err).WithField("proto_filename", protoFileName).Error("Failed to convert")
-			return nil, err
-		}
-
-		// Marshal the JSON-Schema into JSON:
-		jsonSchemaJSON, err := json.MarshalIndent(messageJSONSchema, "", "    ")
-		if err != nil {
-			c.logger.WithError(err).Error("Failed to encode jsonSchema")
-			return nil, err
-		}
-
-		// Add a response:
-		resFile := &plugin.CodeGeneratorResponse_File{
-			Name:    proto.String(jsonSchemaFileName),
-			Content: proto.String(string(jsonSchemaJSON)),
-		}
-		response = append(response, resFile)
-	}
-
-	return response, nil
+	return resFile, nil
 }
 
 func (c *Converter) convert(req *plugin.CodeGeneratorRequest) (*plugin.CodeGeneratorResponse, error) {
-	generateTargets := make(map[string]bool)
-	for _, file := range req.GetFileToGenerate() {
-		generateTargets[file] = true
-	}
-
 	c.sourceInfo = newSourceCodeInfo(req.GetProtoFile())
 	res := &plugin.CodeGeneratorResponse{}
-	for _, file := range req.GetProtoFile() {
-		for _, msg := range file.GetMessageType() {
-			c.logger.WithField("msg_name", msg.GetName()).WithField("package_name", file.GetPackage()).Debug("Loading a message")
-			c.registerType(file.Package, msg)
-		}
+
+	err := c.calcGeneratorPlan(req)
+	if err != nil {
+		return nil, err
 	}
-	for _, file := range req.GetProtoFile() {
-		if _, ok := generateTargets[file.GetName()]; ok {
-			c.logger.WithField("filename", file.GetName()).Debug("Converting file")
-			converted, err := c.convertFile(file)
-			if err != nil {
-				res.Error = proto.String(fmt.Sprintf("Failed to convert %s: %v", file.GetName(), err))
-				return res, err
-			}
-			res.File = append(res.File, converted...)
+
+	for _, fName := range c.generatorPlan.GetAllJsonFilenames() {
+		converted, err := c.convertFile(fName)
+		if err != nil {
+			c.logger.WithField("file", fName).WithField("error", err).
+				Error("Failed to create JSON schema file")
+			res.Error = proto.String(fmt.Sprintf("Failed to create %s: %v", fName, err))
+			return res, err
 		}
+		res.File = append(res.File, converted)
 	}
 	return res, nil
+}
+
+func (c *Converter) calcGeneratorPlan(req *plugin.CodeGeneratorRequest) error {
+	for _, file := range req.GetProtoFile() {
+		packageName := file.GetPackage()
+		for _, enum := range file.GetEnumType() {
+			err := c.addToGeneratorPlan(c.getJsonFileName(packageName, enum.GetName()), packageName, nil,
+				nil, []*descriptor.EnumDescriptorProto{enum})
+			if err != nil {
+				return err
+			}
+		}
+		for _, msg := range file.GetMessageType() {
+			err := c.addToGeneratorPlan(c.getJsonFileName(packageName, msg.GetName()), packageName, nil,
+				[]*descriptor.DescriptorProto{msg}, nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	c.logger.WithField("plan", c.generatorPlan).Info("Generator Plan")
+	return nil
+}
+
+func (c *Converter) addToGeneratorPlan(
+	jsonFileName string,
+	protoPackage string,
+	parentTypeInfo *protoTypeInfo,
+	childMessages []*descriptor.DescriptorProto,
+	childEnums []*descriptor.EnumDescriptorProto) error {
+
+	jsonTopLevel := parentTypeInfo == nil && !c.SingleFile
+
+	if len(childEnums) > 0 {
+		for _, childEnum := range childEnums {
+			typeInfo := NewProtoTypeInfoForEnum(jsonFileName, jsonTopLevel, protoPackage, parentTypeInfo, childEnum)
+			err := c.generatorPlan.Put(typeInfo)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(childMessages) > 0 {
+		for _, childMsg := range childMessages {
+			typeInfo := NewProtoTypeInfoForMsg(jsonFileName, jsonTopLevel, protoPackage, parentTypeInfo, childMsg)
+			err := c.generatorPlan.Put(typeInfo)
+			if err != nil {
+				return err
+			}
+
+			// recurse
+			err = c.addToGeneratorPlan(
+				jsonFileName, protoPackage, typeInfo, childMsg.GetNestedType(), childMsg.GetEnumType())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Converter) getJsonFileName(packageName string, topLevelTypeName string) string {
+	if c.SingleFile {
+		return "schema.json"
+	}
+
+	res := packageName
+	if packageName != "" {
+		res += "."
+	}
+	return res + topLevelTypeName + ".json"
 }
