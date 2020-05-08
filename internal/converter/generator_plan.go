@@ -119,9 +119,9 @@ func (p *protoTypeInfo) GetJsonRef(contextType *protoTypeInfo) string {
 	if contextType.GetJsonFileName() != p.GetJsonFileName() {
 		ref += p.GetJsonFileName()
 	}
-	ref += "#/"
+	ref += "#"
 	if !p.GenerateAtTopLevel() {
-		ref += "definitions/"
+		ref += "/definitions/"
 		ref += p.GetProtoFQNName()
 	}
 	return ref
