@@ -7,30 +7,29 @@ import (
 )
 
 type generatorPlan struct {
-	jsonFileLookup map[string][]*protoTypeInfo
-	typeLookup     map[string]*protoTypeInfo
+	targetFileLookup map[string][]*protoTypeInfo
+	typeLookup       map[string]*protoTypeInfo
 }
 
 type protoTypeInfo struct {
-	jsonFileName string
-	jsonTopLevel bool
-	protoPackage []string
-	protoFQName  []string
-	protoMsg     *descriptor.DescriptorProto
-	protoEnum    *descriptor.EnumDescriptorProto
-	children     []*protoTypeInfo
+	targetFileName     string
+	jsonSchemaTopLevel bool
+	protoPackage       []string
+	protoFQName        []string
+	protoMsg           *descriptor.DescriptorProto
+	protoEnum          *descriptor.EnumDescriptorProto
 }
 
 func NewGeneratorPlan() *generatorPlan {
 	plan := new(generatorPlan)
-	plan.jsonFileLookup = make(map[string][]*protoTypeInfo)
+	plan.targetFileLookup = make(map[string][]*protoTypeInfo)
 	plan.typeLookup = make(map[string]*protoTypeInfo)
 	return plan
 }
 
 func (g *generatorPlan) Put(tInfo *protoTypeInfo) error {
-	jsonFileName := tInfo.GetJsonFileName()
-	g.jsonFileLookup[jsonFileName] = append(g.jsonFileLookup[jsonFileName], tInfo)
+	targetFileName := tInfo.GetTargetFileName()
+	g.targetFileLookup[targetFileName] = append(g.targetFileLookup[targetFileName], tInfo)
 
 	typeName := strings.Join(tInfo.getFullNameHierarchy(), ".")
 	if g.typeLookup[typeName] != nil {
@@ -40,27 +39,26 @@ func (g *generatorPlan) Put(tInfo *protoTypeInfo) error {
 	return nil
 }
 
-func (g *generatorPlan) GetForJsonFilename(fileName string) []*protoTypeInfo {
-	return g.jsonFileLookup[fileName]
+func (g *generatorPlan) GetAllForTargetFilename(fileName string) []*protoTypeInfo {
+	return g.targetFileLookup[fileName]
 }
 
-func (g *generatorPlan) GetAllJsonFilenames() []string {
-	keys := make([]string, 0, len(g.jsonFileLookup))
-	for k, _ := range g.jsonFileLookup {
+func (g *generatorPlan) GetAllTargetFilenames() []string {
+	keys := make([]string, 0, len(g.targetFileLookup))
+	for k, _ := range g.targetFileLookup {
 		keys = append(keys, k)
 	}
 	return keys
 }
 
-func (g *generatorPlan) LookupType(contextType *protoTypeInfo, typeName string) *protoTypeInfo {
-
+func (g *generatorPlan) LookupType(typeName string) *protoTypeInfo {
 	typeName = strings.Trim(typeName, ".")
 	return g.typeLookup[typeName]
 }
 
 func (b *generatorPlan) String() string {
 	result := ""
-	for _, value := range b.jsonFileLookup {
+	for _, value := range b.targetFileLookup {
 		for _, tInfo := range value {
 			result += "[" + tInfo.String() + "]"
 		}
@@ -68,31 +66,30 @@ func (b *generatorPlan) String() string {
 	return result
 }
 
-func NewProtoTypeInfoForMsg(jsonFileName string, jsonTopLevel bool, protoPackage string, parent *protoTypeInfo,
+func NewProtoTypeInfoForMsg(targetFileName string, jsonSchemaTopLevel bool, protoPackage string, parent *protoTypeInfo,
 	protoMsg *descriptor.DescriptorProto) *protoTypeInfo {
 
-	return newProtoTypeInfo(jsonFileName, protoPackage, parent, jsonTopLevel, nil, protoMsg)
+	return newProtoTypeInfo(targetFileName, protoPackage, parent, jsonSchemaTopLevel, nil, protoMsg)
 }
 
-func NewProtoTypeInfoForEnum(jsonFileName string, jsonTopLevel bool, protoPackage string, parent *protoTypeInfo,
+func NewProtoTypeInfoForEnum(targetFileName string, jsonSchemaTopLevel bool, protoPackage string, parent *protoTypeInfo,
 	protoEnum *descriptor.EnumDescriptorProto) *protoTypeInfo {
 
-	return newProtoTypeInfo(jsonFileName, protoPackage, parent, jsonTopLevel, protoEnum, nil)
+	return newProtoTypeInfo(targetFileName, protoPackage, parent, jsonSchemaTopLevel, protoEnum, nil)
 }
 
-func newProtoTypeInfo(jsonFileName string,
+func newProtoTypeInfo(targetFileName string,
 	protoPackage string,
 	parent *protoTypeInfo,
-	jsonTopLevel bool,
+	jsonSchemaTopLevel bool,
 	protoEnum *descriptor.EnumDescriptorProto,
 	protoMsg *descriptor.DescriptorProto) *protoTypeInfo {
 
 	tInfo := new(protoTypeInfo)
-	tInfo.jsonFileName = jsonFileName
-	tInfo.jsonTopLevel = jsonTopLevel
+	tInfo.targetFileName = targetFileName
+	tInfo.jsonSchemaTopLevel = jsonSchemaTopLevel
 	tInfo.protoMsg = protoMsg
 	tInfo.protoEnum = protoEnum
-	tInfo.children = make([]*protoTypeInfo, 0, 10)
 
 	tInfo.protoPackage = strings.Split(protoPackage, ".")
 
@@ -110,37 +107,20 @@ func newProtoTypeInfo(jsonFileName string,
 	return tInfo
 }
 
-func (p *protoTypeInfo) GetJsonFileName() string {
-	return p.jsonFileName
-}
-
-func (p *protoTypeInfo) GetJsonRef(contextType *protoTypeInfo) string {
-	ref := ""
-	if contextType.GetJsonFileName() != p.GetJsonFileName() {
-		ref += p.GetJsonFileName()
-	}
-	ref += "#"
-	if !p.GenerateAtTopLevel() {
-		ref += "/definitions/"
-		ref += p.GetProtoFQNName()
-	}
-	return ref
+func (p *protoTypeInfo) GetTargetFileName() string {
+	return p.targetFileName
 }
 
 func (p *protoTypeInfo) GenerateAtTopLevel() bool {
-	return p.jsonTopLevel
+	return p.jsonSchemaTopLevel
 }
 
-func (p *protoTypeInfo) GetProtoTypeName() string {
-	return p.protoFQName[len(p.protoFQName)-1]
-}
-
-func (p *protoTypeInfo) GetProtoFQNName() string {
+func (p *protoTypeInfo) GetProtoFQTypeName() string {
 	return strings.Join(p.protoFQName, ".")
 }
 
-func (p *protoTypeInfo) GetProtoPackageName() string {
-	return strings.Join(p.protoPackage, ".")
+func (p *protoTypeInfo) GetProtoTypeName() string {
+	return strings.Join(append(p.protoPackage, p.protoFQName...), ".")
 }
 
 func (p *protoTypeInfo) IsProtoMessage() bool {
@@ -160,7 +140,7 @@ func (p *protoTypeInfo) GetProtoEnum() *descriptor.EnumDescriptorProto {
 }
 
 func (p *protoTypeInfo) String() string {
-	return p.jsonFileName + " " + p.GetProtoPackageName() + " " + p.GetProtoFQNName()
+	return p.targetFileName + " " + p.GetProtoFQTypeName()
 }
 
 func (p *protoTypeInfo) getFullNameHierarchy() []string {

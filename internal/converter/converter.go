@@ -85,8 +85,30 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 	}
 }
 
+func (c *Converter) convert(req *plugin.CodeGeneratorRequest) (*plugin.CodeGeneratorResponse, error) {
+	c.sourceInfo = newSourceCodeInfo(req.GetProtoFile())
+	res := &plugin.CodeGeneratorResponse{}
+
+	err := c.calcGeneratorPlan(req)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fName := range c.generatorPlan.GetAllTargetFilenames() {
+		converted, err := c.convertFile(fName)
+		if err != nil {
+			c.logger.WithField("file", fName).WithField("error", err).
+				Error("Failed to create JSON schema file")
+			res.Error = proto.String(fmt.Sprintf("Failed to create %s: %v", fName, err))
+			return res, err
+		}
+		res.File = append(res.File, converted)
+	}
+	return res, nil
+}
+
 func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGeneratorResponse_File, error) {
-	typeInfos := c.generatorPlan.GetForJsonFilename(jsonSchemaFileName)
+	typeInfos := c.generatorPlan.GetAllForTargetFilename(jsonSchemaFileName)
 
 	c.logger.WithField("file", jsonSchemaFileName).Info("Creating JSON schema file ...")
 
@@ -102,23 +124,19 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 					". JSON schema can only have one root type.")
 			}
 
-			jsonType, err := c.recursiveConvertMessageType(typeInfo)
+			jsonType, err := c.convertProtoType(typeInfo)
 			if err != nil {
 				return nil, err
 			}
 			jsonSchema.Type = jsonType
 		} else {
-			jsonType, err := c.recursiveConvertMessageType(typeInfo)
+			jsonType, err := c.convertProtoType(typeInfo)
 			if err != nil {
 				return nil, err
 			}
 
 			// need to give that schema an ID
-			typeId := typeInfo.GetProtoFQNName()
-			if jsonType.Extras == nil {
-				jsonType.Extras = make(map[string]interface{})
-			}
-			jsonType.Extras["id"] = typeId
+			typeId := typeInfo.GetProtoFQTypeName()
 			jsonSchema.Definitions[typeId] = jsonType
 		}
 	}
@@ -140,28 +158,6 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 	}
 
 	return resFile, nil
-}
-
-func (c *Converter) convert(req *plugin.CodeGeneratorRequest) (*plugin.CodeGeneratorResponse, error) {
-	c.sourceInfo = newSourceCodeInfo(req.GetProtoFile())
-	res := &plugin.CodeGeneratorResponse{}
-
-	err := c.calcGeneratorPlan(req)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, fName := range c.generatorPlan.GetAllJsonFilenames() {
-		converted, err := c.convertFile(fName)
-		if err != nil {
-			c.logger.WithField("file", fName).WithField("error", err).
-				Error("Failed to create JSON schema file")
-			res.Error = proto.String(fmt.Sprintf("Failed to create %s: %v", fName, err))
-			return res, err
-		}
-		res.File = append(res.File, converted)
-	}
-	return res, nil
 }
 
 func (c *Converter) calcGeneratorPlan(req *plugin.CodeGeneratorRequest) error {

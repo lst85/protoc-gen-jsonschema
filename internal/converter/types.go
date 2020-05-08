@@ -13,6 +13,89 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+func (c *Converter) convertProtoType(typeInfo *protoTypeInfo) (*jsonschema.Type, error) {
+	if typeInfo.IsProtoMessage() {
+		return c.convertMessageType(typeInfo, typeInfo.GetProtoMessage())
+	} else if typeInfo.IsProtoEnum() {
+		return c.convertEnumType(typeInfo.GetProtoEnum())
+	} else {
+		return nil, errors.New("unknown ProtoBuf type, expecting either message or enum")
+	}
+}
+
+// Converts a proto "ENUM" into a JSON-Schema:
+func (c *Converter) convertEnumType(enum *descriptor.EnumDescriptorProto) (*jsonschema.Type, error) {
+
+	// Prepare a new jsonschema.Type for our eventual return value:
+	jsonSchemaType := jsonschema.Type{
+		Version: jsonschema.Version,
+	}
+
+	// Generate a description from src comments (if available)
+	if src := c.sourceInfo.GetEnum(enum); src != nil {
+		jsonSchemaType.Description = formatDescription(src)
+	}
+
+	c.setJsonTypeForEnum(&jsonSchemaType)
+
+	// Add the allowed values:
+	for _, enumValue := range enum.Value {
+		jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Name)
+		if !c.DisallowNumericEnumValues {
+			jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
+		}
+	}
+
+	return &jsonSchemaType, nil
+}
+
+// Converts a proto "message" into a JSON-Schema:
+func (c *Converter) convertMessageType(typeInfo *protoTypeInfo, msg *descriptor.DescriptorProto) (*jsonschema.Type, error) {
+	// Prepare a new jsonschema:
+	jsonSchemaType := &jsonschema.Type{
+		Properties: orderedmap.New(),
+		Version:    jsonschema.Version,
+	}
+
+	// Generate a description from src comments (if available)
+	if src := c.sourceInfo.GetMessage(msg); src != nil {
+		jsonSchemaType.Description = formatDescription(src)
+	}
+
+	// Optionally allow NULL values:
+	if c.AllowNullValues {
+		jsonSchemaType.OneOf = []*jsonschema.Type{
+			{Type: gojsonschema.TYPE_NULL},
+			{Type: gojsonschema.TYPE_OBJECT},
+		}
+	} else {
+		jsonSchemaType.Type = gojsonschema.TYPE_OBJECT
+	}
+
+	jsonSchemaType.AdditionalProperties = c.getAdditionalPropertiesValue()
+
+	c.logger.WithField("message_str", proto.MarshalTextString(msg)).Trace("Converting message")
+	for _, fieldDesc := range msg.GetField() {
+		recursedJSONSchemaType, err := c.convertField(typeInfo, fieldDesc)
+		if err != nil {
+			c.logger.WithError(err).WithField("field_name", fieldDesc.GetName()).WithField("message_name", msg.GetName()).Error("Failed to convert field")
+			return nil, err
+		}
+		c.logger.WithField("field_name", fieldDesc.GetName()).WithField("type", recursedJSONSchemaType.Type).Trace("Converted field")
+		jsonSchemaType.Properties.Set(fieldDesc.GetName(), recursedJSONSchemaType)
+		if c.UseProtoAndJSONFieldnames && fieldDesc.GetName() != fieldDesc.GetJsonName() {
+			jsonSchemaType.Properties.Set(fieldDesc.GetJsonName(), recursedJSONSchemaType)
+		}
+	}
+
+	if len(jsonSchemaType.Properties.Keys()) == 0 {
+		// remove empty properties to clean the final output as clean as possible
+		jsonSchemaType.Properties = nil
+	}
+
+	return jsonSchemaType, nil
+}
+
 // Convert a proto "field" (essentially a type-switch with some recursion):
 func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.FieldDescriptorProto) (*jsonschema.Type, error) {
 
@@ -76,11 +159,11 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 		}
 
 	case descriptor.FieldDescriptorProto_TYPE_ENUM:
-		fieldType := c.generatorPlan.LookupType(typeInfo, desc.GetTypeName())
+		fieldType := c.generatorPlan.LookupType(desc.GetTypeName())
 		if fieldType == nil {
 			return nil, fmt.Errorf("no such message type: %s", desc.GetTypeName())
 		}
-		jsonSchemaType.Ref = fieldType.GetJsonRef(typeInfo)
+		jsonSchemaType.Ref = c.getJsonRefValue(typeInfo, fieldType)
 
 	case descriptor.FieldDescriptorProto_TYPE_BOOL:
 		if c.AllowNullValues {
@@ -128,12 +211,14 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 	// Recurse nested objects / arrays of objects (if necessary):
 	if jsonSchemaType.Type == gojsonschema.TYPE_OBJECT {
 
-		fieldType := c.generatorPlan.LookupType(typeInfo, desc.GetTypeName())
+		fieldType := c.generatorPlan.LookupType(desc.GetTypeName())
 		if fieldType == nil {
 			return nil, fmt.Errorf("no such message type: %s", desc.GetTypeName())
 		}
 
-		// TODO: check if not null!
+		if !fieldType.IsProtoMessage() {
+			return nil, fmt.Errorf("expecting type %s to be a ProtoBuf message", fieldType.GetProtoFQTypeName())
+		}
 		fieldMsg := fieldType.GetProtoMessage()
 
 		// Maps, arrays, and objects are structured in different ways:
@@ -142,11 +227,11 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 		case fieldMsg.Options.GetMapEntry():
 			c.logger.
 				WithField("field_name", fieldMsg.GetName()).
-				WithField("msg_name", typeInfo.GetProtoFQNName()).
+				WithField("msg_name", typeInfo.GetProtoFQTypeName()).
 				Tracef("Is a map")
 
 			// Recurse the recordType:
-			recursedJSONSchemaType, err := c.recursiveConvertMessageType(fieldType)
+			recursedJSONSchemaType, err := c.convertProtoType(fieldType)
 			if err != nil {
 				return nil, err
 			}
@@ -154,7 +239,7 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 			// Make sure we have a "value":
 			value, valuePresent := recursedJSONSchemaType.Properties.Get("value")
 			if !valuePresent {
-				return nil, fmt.Errorf("Unable to find 'value' property of MAP type")
+				return nil, fmt.Errorf("unable to find 'value' property of MAP type")
 			}
 
 			// Marshal the "value" properties to JSON (because that's how we can pass on AdditionalProperties):
@@ -168,11 +253,11 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 		case desc.GetLabel() == descriptor.FieldDescriptorProto_LABEL_REPEATED:
 			jsonSchemaType.Type = gojsonschema.TYPE_ARRAY
 			jsonSchemaType.Items = &jsonschema.Type{}
-			jsonSchemaType.Items.Ref = fieldType.GetJsonRef(typeInfo)
+			jsonSchemaType.Items.Ref = c.getJsonRefValue(typeInfo, fieldType)
 
 		// Objects:
 		default:
-			jsonSchemaType.Ref = fieldType.GetJsonRef(typeInfo)
+			jsonSchemaType.Ref = c.getJsonRefValue(typeInfo, fieldType)
 			jsonSchemaType.AdditionalProperties = c.getAdditionalPropertiesValue()
 		}
 
@@ -184,87 +269,6 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 			}
 			jsonSchemaType.Type = ""
 		}
-	}
-
-	return jsonSchemaType, nil
-}
-
-// Converts a proto "ENUM" into a JSON-Schema:
-func (c *Converter) convertEnumType(enum *descriptor.EnumDescriptorProto) (*jsonschema.Type, error) {
-
-	// Prepare a new jsonschema.Type for our eventual return value:
-	jsonSchemaType := jsonschema.Type{
-		Version: jsonschema.Version,
-	}
-
-	// Generate a description from src comments (if available)
-	if src := c.sourceInfo.GetEnum(enum); src != nil {
-		jsonSchemaType.Description = formatDescription(src)
-	}
-
-	c.setJsonTypeForEnum(&jsonSchemaType)
-
-	// Add the allowed values:
-	for _, enumValue := range enum.Value {
-		jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Name)
-		if !c.DisallowNumericEnumValues {
-			jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
-		}
-	}
-
-	return &jsonSchemaType, nil
-}
-
-func (c *Converter) recursiveConvertMessageType(typeInfo *protoTypeInfo) (*jsonschema.Type, error) {
-
-	// Prepare a new jsonschema:
-	jsonSchemaType := &jsonschema.Type{
-		Properties: orderedmap.New(),
-		Version:    jsonschema.Version,
-	}
-
-	if typeInfo.IsProtoMessage() {
-		msg := typeInfo.GetProtoMessage()
-
-		// Generate a description from src comments (if available)
-		if src := c.sourceInfo.GetMessage(msg); src != nil {
-			jsonSchemaType.Description = formatDescription(src)
-		}
-
-		// Optionally allow NULL values:
-		if c.AllowNullValues {
-			jsonSchemaType.OneOf = []*jsonschema.Type{
-				{Type: gojsonschema.TYPE_NULL},
-				{Type: gojsonschema.TYPE_OBJECT},
-			}
-		} else {
-			jsonSchemaType.Type = gojsonschema.TYPE_OBJECT
-		}
-
-		jsonSchemaType.AdditionalProperties = c.getAdditionalPropertiesValue()
-
-		c.logger.WithField("message_str", proto.MarshalTextString(msg)).Trace("Converting message")
-		for _, fieldDesc := range msg.GetField() {
-			recursedJSONSchemaType, err := c.convertField(typeInfo, fieldDesc)
-			if err != nil {
-				c.logger.WithError(err).WithField("field_name", fieldDesc.GetName()).WithField("message_name", msg.GetName()).Error("Failed to convert field")
-				return nil, err
-			}
-			c.logger.WithField("field_name", fieldDesc.GetName()).WithField("type", recursedJSONSchemaType.Type).Trace("Converted field")
-			jsonSchemaType.Properties.Set(fieldDesc.GetName(), recursedJSONSchemaType)
-			if c.UseProtoAndJSONFieldnames && fieldDesc.GetName() != fieldDesc.GetJsonName() {
-				jsonSchemaType.Properties.Set(fieldDesc.GetJsonName(), recursedJSONSchemaType)
-			}
-		}
-
-		if len(jsonSchemaType.Properties.Keys()) == 0 {
-			// remove empty properties to clean the final output as clean as possible
-			jsonSchemaType.Properties = nil
-		}
-	} else if typeInfo.IsProtoEnum() {
-		return c.convertEnumType(typeInfo.GetProtoEnum())
-	} else {
-		return nil, errors.New("Unknown ProtocBuf Type. Expecting either message or enum")
 	}
 
 	return jsonSchemaType, nil
@@ -322,4 +326,17 @@ func (c *Converter) setJsonTypeForEnum(jsonSchemaType *jsonschema.Type) {
 			jsonSchemaType.OneOf = append(jsonSchemaType.OneOf, &jsonschema.Type{Type: types[i]})
 		}
 	}
+}
+
+func (c *Converter) getJsonRefValue(contextType *protoTypeInfo, targetType *protoTypeInfo) string {
+	ref := ""
+	if contextType.GetTargetFileName() != targetType.GetTargetFileName() {
+		ref += targetType.GetTargetFileName()
+	}
+	ref += "#"
+	if !targetType.GenerateAtTopLevel() {
+		ref += "/definitions/"
+		ref += targetType.GetProtoFQTypeName()
+	}
+	return ref
 }
