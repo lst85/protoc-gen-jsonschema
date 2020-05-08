@@ -1,7 +1,7 @@
 syntax = "proto3";
 package samples;
 
-message Foo {
+message SelfReference {
   string name      = 1;
-  repeated Foo bar = 2;
+  repeated SelfReference bar = 2;
 }

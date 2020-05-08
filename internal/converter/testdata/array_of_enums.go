@@ -7,21 +7,34 @@ const ArrayOfEnums = `{
             "type": "string"
         },
         "stuff": {
-            "items": {
-                "enum": [
-                    "FOO",
-                    0,
-                    "BAR",
-                    1,
-                    "FIZZ",
-                    2,
-                    "BUZZ",
-                    3
-                ]
-            },
+            "$ref": "#/definitions/ArrayOfEnums.inline",
+            "items": {},
             "type": "array"
         }
     },
     "additionalProperties": true,
-    "type": "object"
+    "type": "object",
+    "definitions": {
+        "ArrayOfEnums.inline": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "enum": [
+                "FOO",
+                0,
+                "BAR",
+                1,
+                "FIZZ",
+                2,
+                "BUZZ",
+                3
+            ],
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "integer"
+                }
+            ]
+        }
+    }
 }`
