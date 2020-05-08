@@ -1,3 +1,5 @@
+![Go](https://github.com/lst85/protoc-gen-jsonschema/workflows/Go/badge.svg?branch=master)
+
 Protobuf to JSON-Schema compiler
 ================================
 This takes protobuf definitions and converts them into JSONSchemas, which can be used to dynamically validate JSON messages.
