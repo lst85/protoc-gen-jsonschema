@@ -3,6 +3,7 @@ package converter
 import (
 	"fmt"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	"sort"
 	"strings"
 )
 
@@ -48,6 +49,9 @@ func (g *generatorPlan) GetAllTargetFilenames() []string {
 	for k, _ := range g.targetFileLookup {
 		keys = append(keys, k)
 	}
+
+	// Sorting makes the order deterministic. Important for unit tests.
+	sort.Strings(keys)
 	return keys
 }
 

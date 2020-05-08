@@ -7,20 +7,19 @@ const AdditionalProperties = `{
             "type": "string"
         },
         "message": {
-            "$ref": "#/definitions/samples.AdditionalProperties.NestedMessage",
+            "$ref": "#/definitions/AdditionalProperties.NestedMessage",
             "additionalProperties": {},
             "type": "object"
         },
-        "repeated_primitive": {
+        "repeatedPrimitive": {
             "items": {
                 "type": "integer"
             },
             "type": "array"
         },
-        "repeated_message": {
+        "repeatedMessage": {
             "items": {
-                "$schema": "http://json-schema.org/draft-04/schema#",
-                "$ref": "#/definitions/samples.AdditionalProperties.NestedMessage"
+                "$ref": "#/definitions/AdditionalProperties.NestedMessage"
             },
             "type": "array"
         }
@@ -28,16 +27,15 @@ const AdditionalProperties = `{
     "additionalProperties": {},
     "type": "object",
     "definitions": {
-        "samples.AdditionalProperties.NestedMessage": {
+        "AdditionalProperties.NestedMessage": {
             "$schema": "http://json-schema.org/draft-04/schema#",
             "properties": {
-                "nested_key": {
+                "nestedKey": {
                     "type": "string"
                 }
             },
             "additionalProperties": {},
-            "type": "object",
-            "id": "samples.AdditionalProperties.NestedMessage"
+            "type": "object"
         }
     }
 }`

@@ -23,7 +23,7 @@ type Converter struct {
 	DisallowNumericEnumValues    bool
 	OpenApiConform               bool
 	SingleFile                   bool
-	UseProtoAndJSONFieldnames    bool
+	UseProtoFieldnames           bool
 	logger                       *logrus.Logger
 	sourceInfo                   *sourceCodeInfo
 	generatorPlan                *generatorPlan
@@ -77,8 +77,8 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 			c.SingleFile = true
 		case "open_api_conform":
 			c.OpenApiConform = true
-		case "proto_and_json_fieldnames":
-			c.UseProtoAndJSONFieldnames = true
+		case "proto_fieldnames":
+			c.UseProtoFieldnames = true
 		default:
 			c.logger.WithField("parameter", parameter).Warn("Unknown parameter")
 		}

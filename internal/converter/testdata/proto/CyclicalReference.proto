@@ -1,5 +1,5 @@
 syntax = "proto3";
-package samples;
+package samples.cyclicalreference;
 
 message M {
   Foo foo = 1;

@@ -24,11 +24,13 @@ build-default: protoc-gen-jsonschema
 PROTO_PATH ?= "internal/converter/testdata/proto"
 samples:
 	@echo "Generating sample JSON-Schemas ..."
+	@rm -f jsonschemas/*
 	@mkdir -p jsonschemas
 	@PATH=./bin:$$PATH; protoc --jsonschema_out=open_api_conform:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/AdditionalProperties.proto || echo "No messages found (AdditionalProperties.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=allow_null_values:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfMessages.proto || echo "No messages found (ArrayOfMessages.proto)"
+	@PATH=./bin:$$PATH; protoc --jsonschema_out=:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfMessages.proto || echo "No messages found (ArrayOfMessages.proto)"
 	@PATH=./bin:$$PATH; protoc --jsonschema_out=allow_null_values:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfObjects.proto || echo "No messages found (ArrayOfObjects.proto)"
 	@PATH=./bin:$$PATH; protoc --jsonschema_out=allow_null_values:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfPrimitives.proto || echo "No messages found (ArrayOfPrimitives.proto)"
+	@PATH=./bin:$$PATH; protoc --jsonschema_out=:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/CyclicalReference.proto || echo "No messages found (CyclicalReference.proto)"
 	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_additional_properties:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/Enumception.proto || echo "No messages found (Enumception.proto)"
 	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_numeric_enum_values:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/EnumNoNumericValues.proto || echo "No messages found (EnumNoNumericValues.proto)"
 	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_additional_properties:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ImportedEnum.proto || echo "No messages found (ImportedEnum.proto)"

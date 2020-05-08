@@ -82,8 +82,10 @@ func (c *Converter) convertMessageType(typeInfo *protoTypeInfo, msg *descriptor.
 			return nil, err
 		}
 		c.logger.WithField("field_name", fieldDesc.GetName()).WithField("type", recursedJSONSchemaType.Type).Trace("Converted field")
-		jsonSchemaType.Properties.Set(fieldDesc.GetName(), recursedJSONSchemaType)
-		if c.UseProtoAndJSONFieldnames && fieldDesc.GetName() != fieldDesc.GetJsonName() {
+
+		if c.UseProtoFieldnames {
+			jsonSchemaType.Properties.Set(fieldDesc.GetName(), recursedJSONSchemaType)
+		} else {
 			jsonSchemaType.Properties.Set(fieldDesc.GetJsonName(), recursedJSONSchemaType)
 		}
 	}

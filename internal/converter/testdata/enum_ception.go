@@ -1,6 +1,6 @@
 package testdata
 
-const EnumCeption = `{
+const Enumception = `{
     "$schema": "http://json-schema.org/draft-04/schema#",
     "properties": {
         "name": {
@@ -19,6 +19,28 @@ const EnumCeption = `{
             "type": "boolean"
         },
         "failureMode": {
+            "$ref": "#/definitions/Enumception.FailureModes"
+        },
+        "payload": {
+            "$ref": "samples.enumception.ImportedMessage.json#",
+            "additionalProperties": false,
+            "type": "object"
+        },
+        "payloads": {
+            "items": {
+                "$ref": "samples.enumception.ImportedMessage.json#"
+            },
+            "type": "array"
+        },
+        "importedEnum": {
+            "$ref": "samples.enumception.ImportedEnum.json#"
+        }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "definitions": {
+        "Enumception.FailureModes": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
             "enum": [
                 "RECURSION_ERROR",
                 0,
@@ -33,20 +55,51 @@ const EnumCeption = `{
                     "type": "integer"
                 }
             ]
+        }
+    }
+}`
+
+const EnumceptionImportedMessage = `{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "properties": {
+        "name": {
+            "type": "string"
         },
-        "payload": {
-            "$ref": "#/definitions/samples.PayloadMessage",
-            "additionalProperties": true,
-            "type": "object"
+        "timestamp": {
+            "type": "string"
         },
-        "payloads": {
-            "items": {
-                "$schema": "http://json-schema.org/draft-04/schema#",
-                "$ref": "#/definitions/samples.PayloadMessage"
-            },
-            "type": "array"
+        "id": {
+            "type": "integer"
         },
-        "importedEnum": {
+        "rating": {
+            "type": "number"
+        },
+        "complete": {
+            "type": "boolean"
+        },
+        "topology": {
+            "$ref": "#/definitions/ImportedMessage.Topology"
+        }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "definitions": {
+        "ImportedMessage.Topology": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "enum": [
+                "FLAT",
+                0,
+                "NESTED_OBJECT",
+                1,
+                "NESTED_MESSAGE",
+                2,
+                "ARRAY_OF_TYPE",
+                3,
+                "ARRAY_OF_OBJECT",
+                4,
+                "ARRAY_OF_MESSAGE",
+                5
+            ],
             "oneOf": [
                 {
                     "type": "string"
@@ -56,56 +109,27 @@ const EnumCeption = `{
                 }
             ]
         }
-    },
-    "additionalProperties": true,
-    "type": "object",
-    "definitions": {
-        "samples.PayloadMessage": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "timestamp": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "rating": {
-                    "type": "number"
-                },
-                "complete": {
-                    "type": "boolean"
-                },
-                "topology": {
-                    "enum": [
-                        "FLAT",
-                        0,
-                        "NESTED_OBJECT",
-                        1,
-                        "NESTED_MESSAGE",
-                        2,
-                        "ARRAY_OF_TYPE",
-                        3,
-                        "ARRAY_OF_OBJECT",
-                        4,
-                        "ARRAY_OF_MESSAGE",
-                        5
-                    ],
-                    "oneOf": [
-                        {
-                            "type": "string"
-                        },
-                        {
-                            "type": "integer"
-                        }
-                    ]
-                }
-            },
-            "additionalProperties": true,
-            "type": "object",
-            "id": "samples.PayloadMessage"
-        }
     }
+}`
+
+const EnumceptionImportedEnum = `{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "enum": [
+        "VALUE_0",
+        0,
+        "VALUE_1",
+        1,
+        "VALUE_2",
+        2,
+        "VALUE_3",
+        3
+    ],
+    "oneOf": [
+        {
+            "type": "string"
+        },
+        {
+            "type": "integer"
+        }
+    ]
 }`
