@@ -22,7 +22,8 @@ type Converter struct {
 	DisallowBigIntsAsStrings     bool
 	DisallowNumericEnumValues    bool
 	OpenApiConform               bool
-	SingleFile                   bool
+	OpenApiFile                  string
+	SingleOutputFile             string
 	UseProtoFieldnames           bool
 	logger                       *logrus.Logger
 	sourceInfo                   *sourceCodeInfo
@@ -61,27 +62,45 @@ func (c *Converter) ConvertFrom(rd io.Reader) (*plugin.CodeGeneratorResponse, er
 
 func (c *Converter) parseGeneratorParameters(parameters string) {
 	for _, parameter := range strings.Split(parameters, ",") {
-		switch parameter {
-		case "": // ignore empty parameter
-		case "allow_null_values":
+		switch {
+		case parameter == "": // ignore empty parameter
+		case parameter == "allow_null_values":
 			c.AllowNullValues = true
-		case "debug":
+		case parameter == "debug":
 			c.logger.SetLevel(logrus.DebugLevel)
-		case "disallow_additional_properties":
+		case parameter == "disallow_additional_properties":
 			c.DisallowAdditionalProperties = true
-		case "disallow_bigints_as_strings":
+		case parameter == "disallow_bigints_as_strings":
 			c.DisallowBigIntsAsStrings = true
-		case "disallow_numeric_enum_values":
+		case parameter == "disallow_numeric_enum_values":
 			c.DisallowNumericEnumValues = true
-		case "single_file":
-			c.SingleFile = true
-		case "open_api_conform":
+		case strings.HasPrefix(parameter, "out_file"):
+			paramSplit := strings.Split(parameter, "=")
+			if len(paramSplit) != 2 || len(paramSplit[1]) == 0 {
+				c.logger.WithField("parameter", parameter).
+					Warn("Invalid parameter. Expecting out_file=<filename>")
+			} else {
+				c.SingleOutputFile = paramSplit[1]
+			}
+		case parameter == "open_api_conform":
 			c.OpenApiConform = true
-		case "proto_fieldnames":
+		case strings.HasPrefix(parameter, "open_api"):
+			paramSplit := strings.Split(parameter, "=")
+			if len(paramSplit) != 2 || len(paramSplit[1]) == 0 {
+				c.logger.WithField("parameter", parameter).
+					Warn("Invalid parameter. Expecting open_api=<filename>")
+			} else {
+				c.OpenApiFile = paramSplit[1]
+			}
+		case parameter == "proto_fieldnames":
 			c.UseProtoFieldnames = true
 		default:
 			c.logger.WithField("parameter", parameter).Warn("Unknown parameter")
 		}
+	}
+
+	if c.OpenApiFile != "" && c.SingleOutputFile == "" {
+		c.SingleOutputFile = "openapi.json"
 	}
 }
 
@@ -110,6 +129,18 @@ func (c *Converter) convert(req *plugin.CodeGeneratorRequest) (*plugin.CodeGener
 func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGeneratorResponse_File, error) {
 	typeInfos := c.generatorPlan.GetAllForTargetFilename(jsonSchemaFileName)
 
+	openApi := OpenAPI{}
+	if c.OpenApiFile != "" {
+		fileContent, err := ioutil.ReadFile(c.OpenApiFile)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(fileContent, &openApi)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	c.logger.WithField("file", jsonSchemaFileName).Info("Creating JSON schema file ...")
 
 	definitions := jsonschema.Definitions{}
@@ -137,18 +168,39 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 
 			// need to give that schema an ID
 			typeId := typeInfo.GetProtoFQTypeName()
-			jsonSchema.Definitions[typeId] = jsonType
+			if c.OpenApiFile != "" {
+				if openApi.Components.Schemas == nil {
+					openApi.Components.Schemas = Schemas{}
+				}
+				openApi.Components.Schemas[typeId] = jsonType
+			} else {
+				jsonSchema.Definitions[typeId] = jsonType
+			}
 		}
 	}
 
-	// Marshal the JSON-Schema into JSON:
-	if jsonSchema.Type == nil {
-		jsonSchema.Type = &jsonschema.Type{}
-	}
-	jsonSchemaJSON, err := json.MarshalIndent(jsonSchema, "", "    ")
-	if err != nil {
-		c.logger.WithError(err).Error("Failed to encode jsonSchema")
-		return nil, err
+	var jsonSchemaJSON []byte = nil
+	if c.OpenApiFile != "" {
+		if openApi.OpenAPI == "" {
+			openApi.OpenAPI = "3.0.0"
+		}
+		jsonBytes, err := json.MarshalIndent(openApi, "", "    ")
+		if err != nil {
+			c.logger.WithError(err).Error("Failed to encode OpenApi document")
+			return nil, err
+		}
+		jsonSchemaJSON = jsonBytes
+	} else {
+		// Marshal the JSON-Schema into JSON:
+		if jsonSchema.Type == nil {
+			jsonSchema.Type = &jsonschema.Type{}
+		}
+		jsonBytes, err := json.MarshalIndent(jsonSchema, "", "    ")
+		if err != nil {
+			c.logger.WithError(err).Error("Failed to encode jsonSchema")
+			return nil, err
+		}
+		jsonSchemaJSON = jsonBytes
 	}
 
 	// Add a response:
@@ -190,7 +242,7 @@ func (c *Converter) addToGeneratorPlan(
 	childMessages []*descriptor.DescriptorProto,
 	childEnums []*descriptor.EnumDescriptorProto) error {
 
-	jsonTopLevel := parentTypeInfo == nil && !c.SingleFile
+	jsonTopLevel := parentTypeInfo == nil && c.SingleOutputFile == ""
 
 	if len(childEnums) > 0 {
 		for _, childEnum := range childEnums {
@@ -222,8 +274,8 @@ func (c *Converter) addToGeneratorPlan(
 }
 
 func (c *Converter) getJsonFileName(packageName string, topLevelTypeName string) string {
-	if c.SingleFile {
-		return "schema.json"
+	if c.SingleOutputFile != "" {
+		return c.SingleOutputFile
 	}
 
 	res := packageName

@@ -1,0 +1,11 @@
+{
+  "info": {
+    "title": "My OpenAPI file",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "/services"
+    }
+  ]
+}

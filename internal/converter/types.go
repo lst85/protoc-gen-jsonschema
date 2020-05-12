@@ -337,7 +337,11 @@ func (c *Converter) getJsonRefValue(contextType *protoTypeInfo, targetType *prot
 	}
 	ref += "#"
 	if !targetType.GenerateAtTopLevel() {
-		ref += "/definitions/"
+		if c.OpenApiFile == "" {
+			ref += "/definitions/"
+		} else {
+			ref += "/components/schemas/"
+		}
 		ref += targetType.GetProtoFQTypeName()
 	}
 	return ref
