@@ -4,20 +4,21 @@ package samples;
 message NestedObject {
     message NestedPayload {
         enum Topology {
-            FLAT             = 0;
-            NESTED_OBJECT    = 1;
-            NESTED_MESSAGE   = 2;
-            ARRAY_OF_TYPE    = 3;
-            ARRAY_OF_OBJECT  = 4;
+            FLAT = 0;
+            NESTED_OBJECT = 1;
+            NESTED_MESSAGE = 2;
+            ARRAY_OF_TYPE = 3;
+            ARRAY_OF_OBJECT = 4;
             ARRAY_OF_MESSAGE = 5;
         }
 
-        string name       = 1;
-        string timestamp  = 2;
-        int32 id          = 3;
-        float rating      = 4;
-        bool complete     = 5;
-        Topology topology = 6;
+        string name = 1;
+        string timestamp = 2;
+        int64 id = 3;
+        uint64 large_value = 4;
+        float rating = 5;
+        bool complete = 6;
+        Topology topology = 7;
     }
 
     NestedPayload payload = 1;

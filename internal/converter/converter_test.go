@@ -22,14 +22,16 @@ var (
 )
 
 type sampleProto struct {
-	AllowNullValues              bool
-	DisallowAdditionalProperties bool
-	DisallowNumericEnumValues    bool
-	OpenApiConform               bool
-	ExpectedJSONSchema           []string
-	FilesToGenerate              []string
-	ProtoFileName                string
-	UseProtoAndJSONFieldNames    bool
+	AllowNullValues           bool
+	AllowAdditionalProperties bool
+	AllowNumericEnumValues    bool
+	DisallowBigIntsAsStrings  bool
+	GenerateOpenApi           bool
+	OpenApiFile               string
+	ExpectedJSONSchema        []string
+	FilesToGenerate           []string
+	ProtoFileName             string
+	UseProtoAndJSONFieldNames bool
 }
 
 func TestGenerateJsonSchema(t *testing.T) {
@@ -45,10 +47,11 @@ func TestGenerateJsonSchema(t *testing.T) {
 	testConvertSampleProto(t, sampleProtos["ArrayOfPrimitives"])
 	testConvertSampleProto(t, sampleProtos["CyclicalReference"])
 	testConvertSampleProto(t, sampleProtos["Enumception"])
-	testConvertSampleProto(t, sampleProtos["EnumNoNumericValues"])
+	testConvertSampleProto(t, sampleProtos["EnumNumericValues"])
 	testConvertSampleProto(t, sampleProtos["Maps"])
 	testConvertSampleProto(t, sampleProtos["MessageWithComments"])
 	testConvertSampleProto(t, sampleProtos["NestedObject"])
+	testConvertSampleProto(t, sampleProtos["OpenApi"])
 	testConvertSampleProto(t, sampleProtos["SelfReference"])
 	testConvertSampleProto(t, sampleProtos["SeveralEnums"])
 	testConvertSampleProto(t, sampleProtos["SeveralMessages"])
@@ -64,10 +67,15 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 	// Use the logger to make a Converter:
 	protoConverter := New(logger)
 	protoConverter.AllowNullValues = sampleProto.AllowNullValues
-	protoConverter.DisallowNumericEnumValues = sampleProto.DisallowNumericEnumValues
-	protoConverter.DisallowAdditionalProperties = sampleProto.DisallowAdditionalProperties
-	protoConverter.OpenApiConform = sampleProto.OpenApiConform
-	protoConverter.UseProtoFieldnames = sampleProto.UseProtoAndJSONFieldNames
+	protoConverter.AllowNumericEnumValues = sampleProto.AllowNumericEnumValues
+	protoConverter.AllowAdditionalProperties = sampleProto.AllowAdditionalProperties
+	protoConverter.DisallowBigIntsAsStrings = sampleProto.DisallowBigIntsAsStrings
+	protoConverter.GenerateOpenApi = sampleProto.GenerateOpenApi
+	if protoConverter.GenerateOpenApi {
+		protoConverter.SingleOutputFile = sampleProto.ProtoFileName + "_openapi.json"
+	}
+	protoConverter.OpenApiFile = sampleProto.OpenApiFile
+	protoConverter.UseProtoFieldNames = sampleProto.UseProtoAndJSONFieldNames
 
 	// Open the sample proto file:
 	sampleProtoFileName := fmt.Sprintf("%v/%v", sampleProtoDirectory, sampleProto.ProtoFileName)
@@ -98,16 +106,15 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 func configureSampleProtos() {
 	// AdditionalProperties:
 	sampleProtos["AdditionalProperties"] = sampleProto{
-		OpenApiConform:     true,
-		AllowNullValues:    false,
-		ExpectedJSONSchema: []string{testdata.AdditionalProperties},
-		FilesToGenerate:    []string{"AdditionalProperties.proto"},
-		ProtoFileName:      "AdditionalProperties.proto",
+		GenerateOpenApi:           true,
+		AllowAdditionalProperties: true,
+		ExpectedJSONSchema:        []string{testdata.AdditionalProperties},
+		FilesToGenerate:           []string{"AdditionalProperties.proto"},
+		ProtoFileName:             "AdditionalProperties.proto",
 	}
 
 	// ArrayOfEnums:
 	sampleProtos["ArrayOfEnums"] = sampleProto{
-		AllowNullValues:    false,
 		ExpectedJSONSchema: []string{testdata.ArrayOfEnums},
 		FilesToGenerate:    []string{"ArrayOfEnums.proto"},
 		ProtoFileName:      "ArrayOfEnums.proto",
@@ -115,7 +122,6 @@ func configureSampleProtos() {
 
 	// ArrayOfMessages:
 	sampleProtos["ArrayOfMessages"] = sampleProto{
-		AllowNullValues:    false,
 		ExpectedJSONSchema: []string{testdata.ArrayOfMessages},
 		FilesToGenerate:    []string{"ArrayOfMessages.proto"},
 		ProtoFileName:      "ArrayOfMessages.proto",
@@ -147,25 +153,23 @@ func configureSampleProtos() {
 
 	// EnumCeption:
 	sampleProtos["Enumception"] = sampleProto{
-		AllowNullValues:              false,
-		DisallowAdditionalProperties: true,
-		ExpectedJSONSchema:           []string{testdata.Enumception, testdata.EnumceptionImportedEnum, testdata.EnumceptionImportedMessage},
-		FilesToGenerate:              []string{"Enumception.proto", "_ImportedMessage.proto", "_ImportedEnum.proto"},
-		ProtoFileName:                "Enumception.proto",
+		AllowAdditionalProperties: true,
+		ExpectedJSONSchema:        []string{testdata.Enumception, testdata.EnumceptionImportedEnum, testdata.EnumceptionImportedMessage},
+		FilesToGenerate:           []string{"Enumception.proto", "_ImportedMessage.proto", "_ImportedEnum.proto"},
+		ProtoFileName:             "Enumception.proto",
 	}
 
 	// Tests the DisallowNumericEnumValues parameter:
-	sampleProtos["EnumNoNumericValues"] = sampleProto{
-		DisallowNumericEnumValues: true,
-		ExpectedJSONSchema: []string{testdata.EnumNoNumericValuesMsg, testdata.EnumNoNumericValuesMsg2,
-			testdata.EnumNoNumericValuesTopLevelEnum},
-		FilesToGenerate: []string{"EnumNoNumericValues.proto"},
-		ProtoFileName:   "EnumNoNumericValues.proto",
+	sampleProtos["EnumNumericValues"] = sampleProto{
+		AllowNumericEnumValues: true,
+		ExpectedJSONSchema: []string{testdata.EnumNumericValuesMsg, testdata.EnumNumericValuesMsg2,
+			testdata.EnumNumericValuesTopLevelEnum},
+		FilesToGenerate: []string{"EnumNumericValues.proto"},
+		ProtoFileName:   "EnumNumericValues.proto",
 	}
 
 	// Maps:
 	sampleProtos["Maps"] = sampleProto{
-		AllowNullValues:    false,
 		ExpectedJSONSchema: []string{testdata.Maps},
 		FilesToGenerate:    []string{"Maps.proto"},
 		ProtoFileName:      "Maps.proto",
@@ -173,7 +177,6 @@ func configureSampleProtos() {
 
 	// MessageWithComments:
 	sampleProtos["MessageWithComments"] = sampleProto{
-		AllowNullValues:    false,
 		ExpectedJSONSchema: []string{testdata.MessageWithComments},
 		FilesToGenerate:    []string{"MessageWithComments.proto"},
 		ProtoFileName:      "MessageWithComments.proto",
@@ -181,30 +184,39 @@ func configureSampleProtos() {
 
 	// NestedObject:
 	sampleProtos["NestedObject"] = sampleProto{
-		AllowNullValues:    false,
-		ExpectedJSONSchema: []string{testdata.NestedObject},
-		FilesToGenerate:    []string{"NestedObject.proto"},
-		ProtoFileName:      "NestedObject.proto",
+		DisallowBigIntsAsStrings: true,
+		ExpectedJSONSchema:       []string{testdata.NestedObject},
+		FilesToGenerate:          []string{"NestedObject.proto"},
+		ProtoFileName:            "NestedObject.proto",
+	}
+
+	// OpenApi:
+	sampleProtos["OpenApi"] = sampleProto{
+		GenerateOpenApi:    true,
+		OpenApiFile:        fmt.Sprintf("%v/openapi.json", sampleProtoDirectory),
+		ExpectedJSONSchema: []string{testdata.OpenApi},
+		FilesToGenerate:    []string{"OpenApi.proto"},
+		ProtoFileName:      "OpenApi.proto",
 	}
 
 	// Self referencing proto message
 	sampleProtos["SelfReference"] = sampleProto{
-		ExpectedJSONSchema: []string{testdata.SelfReference},
-		FilesToGenerate:    []string{"SelfReference.proto"},
-		ProtoFileName:      "SelfReference.proto",
+		DisallowBigIntsAsStrings: true,
+		ExpectedJSONSchema:       []string{testdata.SelfReference},
+		FilesToGenerate:          []string{"SelfReference.proto"},
+		ProtoFileName:            "SelfReference.proto",
 	}
 
 	// SeveralEnums:
 	sampleProtos["SeveralEnums"] = sampleProto{
-		AllowNullValues:    false,
-		ExpectedJSONSchema: []string{testdata.SeveralEnumsFirstEnum, testdata.SeveralEnumsSecondEnum},
-		FilesToGenerate:    []string{"SeveralEnums.proto"},
-		ProtoFileName:      "SeveralEnums.proto",
+		DisallowBigIntsAsStrings: true,
+		ExpectedJSONSchema:       []string{testdata.SeveralEnumsFirstEnum, testdata.SeveralEnumsSecondEnum},
+		FilesToGenerate:          []string{"SeveralEnums.proto"},
+		ProtoFileName:            "SeveralEnums.proto",
 	}
 
 	// SeveralMessages:
 	sampleProtos["SeveralMessages"] = sampleProto{
-		AllowNullValues:    false,
 		ExpectedJSONSchema: []string{testdata.FirstMessage, testdata.SecondMessage},
 		FilesToGenerate:    []string{"SeveralMessages.proto"},
 		ProtoFileName:      "SeveralMessages.proto",

@@ -5,14 +5,14 @@ const NestedObject = `{
     "properties": {
         "payload": {
             "$ref": "#/definitions/NestedObject.NestedPayload",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "type": "object"
         },
         "description": {
             "type": "string"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object",
     "definitions": {
         "NestedObject.NestedPayload": {
@@ -25,7 +25,18 @@ const NestedObject = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "oneOf": [
+                        {
+                            "type": "integer"
+                        }
+                    ]
+                },
+                "largeValue": {
+                    "oneOf": [
+                        {
+                            "type": "integer"
+                        }
+                    ]
                 },
                 "rating": {
                     "type": "number"
@@ -37,33 +48,20 @@ const NestedObject = `{
                     "$ref": "#/definitions/NestedObject.NestedPayload.Topology"
                 }
             },
-            "additionalProperties": true,
+            "additionalProperties": false,
             "type": "object"
         },
         "NestedObject.NestedPayload.Topology": {
             "$schema": "http://json-schema.org/draft-04/schema#",
             "enum": [
                 "FLAT",
-                0,
                 "NESTED_OBJECT",
-                1,
                 "NESTED_MESSAGE",
-                2,
                 "ARRAY_OF_TYPE",
-                3,
                 "ARRAY_OF_OBJECT",
-                4,
-                "ARRAY_OF_MESSAGE",
-                5
+                "ARRAY_OF_MESSAGE"
             ],
-            "oneOf": [
-                {
-                    "type": "string"
-                },
-                {
-                    "type": "integer"
-                }
-            ]
+            "type": "string"
         }
     }
 }`

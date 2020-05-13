@@ -21,26 +21,33 @@ build-darwin: protoc-gen-jsonschema.darwin-amd64
 
 build-default: protoc-gen-jsonschema
 
-PROTO_PATH ?= "internal/converter/testdata/proto"
+proto_path ?= "internal/converter/testdata/proto"
+comma:= ,
+
+define build_sample
+	@echo "Processing $(1) with parameters: $(2)"
+	@PATH=./bin:$$PATH; protoc --jsonschema_out=$(2):jsonschemas --proto_path=$(proto_path) $(proto_path)/$(1) || echo "No messages found ($(1))"
+endef
+
 samples:
 	@echo "Generating sample JSON-Schemas ..."
 	@rm -f jsonschemas/*
 	@mkdir -p jsonschemas
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=open_api_conform:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/AdditionalProperties.proto || echo "No messages found (AdditionalProperties.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfEnums.proto || echo "No messages found (ArrayOfEnums.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfMessages.proto || echo "No messages found (ArrayOfMessages.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=allow_null_values:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfObjects.proto || echo "No messages found (ArrayOfObjects.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=allow_null_values:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/ArrayOfPrimitives.proto || echo "No messages found (ArrayOfPrimitives.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/CyclicalReference.proto || echo "No messages found (CyclicalReference.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_additional_properties:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/Enumception.proto || echo "No messages found (Enumception.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_numeric_enum_values:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/EnumNoNumericValues.proto || echo "No messages found (EnumNoNumericValues.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/Maps.proto || echo "No messages found (Maps.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/MessageWithComments.proto || echo "No messages found (MessageWithComments.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_bigints_as_strings:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/NestedObject.proto || echo "No messages found (NestedObject.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=out_file=openapi.json,open_api=${PROTO_PATH}/openapi.json:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/OpenApi.proto || echo "No messages found (OpenApi.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_bigints_as_strings:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/SelfReference.proto || echo "No messages found (SelfReference.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=disallow_bigints_as_strings:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/SeveralEnums.proto || echo "No messages found (SeveralEnums.proto)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=:jsonschemas --proto_path=${PROTO_PATH} ${PROTO_PATH}/SeveralMessages.proto || echo "No messages found (SeveralMessages.proto)"
+	$(call build_sample,AdditionalProperties.proto,open_api$(comma)out_file=samples.AdditionalProperties.json$(comma)allow_additional_properties)
+	$(call build_sample,ArrayOfEnums.proto,)
+	$(call build_sample,ArrayOfMessages.proto,)
+	$(call build_sample,ArrayOfObjects.proto,allow_null_values)
+	$(call build_sample,ArrayOfPrimitives.proto,allow_null_values)
+	$(call build_sample,CyclicalReference.proto,)
+	$(call build_sample,Enumception.proto,allow_additional_properties)
+	$(call build_sample,EnumNumericValues.proto,allow_numeric_enum_values)
+	$(call build_sample,Maps.proto,)
+	$(call build_sample,MessageWithComments.proto,)
+	$(call build_sample,NestedObject.proto,disallow_bigints_as_strings)
+	$(call build_sample,OpenApi.proto,open_api$(comma)out_file=openapi.json$(comma)open_api_template=${proto_path}/openapi.json)
+	$(call build_sample,SelfReference.proto,disallow_bigints_as_strings)
+	$(call build_sample,SeveralEnums.proto,disallow_bigints_as_strings)
+	$(call build_sample,SeveralMessages.proto,)
 
 test:
 	@go test ./... -cover -v

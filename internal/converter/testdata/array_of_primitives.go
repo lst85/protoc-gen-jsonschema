@@ -90,7 +90,7 @@ const ArrayOfPrimitives = `{
             ]
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "oneOf": [
         {
             "type": "null"

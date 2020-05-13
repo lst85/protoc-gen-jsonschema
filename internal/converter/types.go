@@ -27,35 +27,31 @@ func (c *Converter) convertProtoType(typeInfo *protoTypeInfo) (*jsonschema.Type,
 func (c *Converter) convertEnumType(enum *descriptor.EnumDescriptorProto) (*jsonschema.Type, error) {
 
 	// Prepare a new jsonschema.Type for our eventual return value:
-	jsonSchemaType := jsonschema.Type{
-		Version: jsonschema.Version,
-	}
+	jsonSchemaType := c.createNewJsonType()
 
 	// Generate a description from src comments (if available)
 	if src := c.sourceInfo.GetEnum(enum); src != nil {
 		jsonSchemaType.Description = formatDescription(src)
 	}
 
-	c.setJsonTypeForEnum(&jsonSchemaType)
+	c.setJsonTypeForEnum(jsonSchemaType)
 
 	// Add the allowed values:
 	for _, enumValue := range enum.Value {
 		jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Name)
-		if !c.DisallowNumericEnumValues {
+		if c.AllowNumericEnumValues {
 			jsonSchemaType.Enum = append(jsonSchemaType.Enum, enumValue.Number)
 		}
 	}
 
-	return &jsonSchemaType, nil
+	return jsonSchemaType, nil
 }
 
 // Converts a proto "message" into a JSON-Schema:
 func (c *Converter) convertMessageType(typeInfo *protoTypeInfo, msg *descriptor.DescriptorProto) (*jsonschema.Type, error) {
 	// Prepare a new jsonschema:
-	jsonSchemaType := &jsonschema.Type{
-		Properties: orderedmap.New(),
-		Version:    jsonschema.Version,
-	}
+	jsonSchemaType := c.createNewJsonType()
+	jsonSchemaType.Properties = orderedmap.New()
 
 	// Generate a description from src comments (if available)
 	if src := c.sourceInfo.GetMessage(msg); src != nil {
@@ -83,7 +79,7 @@ func (c *Converter) convertMessageType(typeInfo *protoTypeInfo, msg *descriptor.
 		}
 		c.logger.WithField("field_name", fieldDesc.GetName()).WithField("type", recursedJSONSchemaType.Type).Trace("Converted field")
 
-		if c.UseProtoFieldnames {
+		if c.UseProtoFieldNames {
 			jsonSchemaType.Properties.Set(fieldDesc.GetName(), recursedJSONSchemaType)
 		} else {
 			jsonSchemaType.Properties.Set(fieldDesc.GetJsonName(), recursedJSONSchemaType)
@@ -299,22 +295,22 @@ func formatDescription(sl *descriptor.SourceCodeInfo_Location) string {
 //		OpenAPI: no additional properties allowed
 // 2. Some OpenAPI implementations do not allow boolean values.
 func (c *Converter) getAdditionalPropertiesValue() []byte {
-	if c.OpenApiConform {
-		if !c.DisallowAdditionalProperties {
+	if c.GenerateOpenApi {
+		if c.AllowAdditionalProperties {
 			return []byte("{}")
 		}
 		return nil
 	}
 
-	if c.DisallowAdditionalProperties {
-		return []byte("false")
+	if c.AllowAdditionalProperties {
+		return []byte("true")
 	}
-	return []byte("true")
+	return []byte("false")
 }
 
 func (c *Converter) setJsonTypeForEnum(jsonSchemaType *jsonschema.Type) {
 	types := []string{gojsonschema.TYPE_STRING}
-	if !c.DisallowNumericEnumValues {
+	if c.AllowNumericEnumValues {
 		types = append(types, gojsonschema.TYPE_INTEGER)
 	}
 	if c.AllowNullValues {
@@ -337,12 +333,20 @@ func (c *Converter) getJsonRefValue(contextType *protoTypeInfo, targetType *prot
 	}
 	ref += "#"
 	if !targetType.GenerateAtTopLevel() {
-		if c.OpenApiFile == "" {
-			ref += "/definitions/"
-		} else {
+		if c.GenerateOpenApi {
 			ref += "/components/schemas/"
+		} else {
+			ref += "/definitions/"
 		}
 		ref += targetType.GetProtoFQTypeName()
 	}
 	return ref
+}
+
+func (c *Converter) createNewJsonType() *jsonschema.Type {
+	t := jsonschema.Type{}
+	if !c.GenerateOpenApi {
+		t.Version = jsonschema.Version
+	}
+	return &t
 }

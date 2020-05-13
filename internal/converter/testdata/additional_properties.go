@@ -1,41 +1,45 @@
 package testdata
 
 const AdditionalProperties = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "key": {
-            "type": "string"
-        },
-        "message": {
-            "$ref": "#/definitions/AdditionalProperties.NestedMessage",
-            "additionalProperties": {},
-            "type": "object"
-        },
-        "repeatedPrimitive": {
-            "items": {
-                "type": "integer"
+    "components": {
+        "schemas": {
+            "AdditionalProperties": {
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "$ref": "#/components/schemas/AdditionalProperties.NestedMessage",
+                        "additionalProperties": {},
+                        "type": "object"
+                    },
+                    "repeatedPrimitive": {
+                        "items": {
+                            "type": "integer"
+                        },
+                        "type": "array"
+                    },
+                    "repeatedMessage": {
+                        "items": {
+                            "$ref": "#/components/schemas/AdditionalProperties.NestedMessage"
+                        },
+                        "type": "array"
+                    }
+                },
+                "additionalProperties": {},
+                "type": "object"
             },
-            "type": "array"
-        },
-        "repeatedMessage": {
-            "items": {
-                "$ref": "#/definitions/AdditionalProperties.NestedMessage"
-            },
-            "type": "array"
+            "AdditionalProperties.NestedMessage": {
+                "properties": {
+                    "nestedKey": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": {},
+                "type": "object"
+            }
         }
     },
-    "additionalProperties": {},
-    "type": "object",
-    "definitions": {
-        "AdditionalProperties.NestedMessage": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "properties": {
-                "nestedKey": {
-                    "type": "string"
-                }
-            },
-            "additionalProperties": {},
-            "type": "object"
-        }
-    }
+    "openapi": "3.0.0",
+    "paths": {}
 }`

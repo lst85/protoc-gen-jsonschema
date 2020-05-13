@@ -6,11 +6,11 @@ const (
     "properties": {
         "foo": {
             "$ref": "samples.cyclicalreference.Foo.json#",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "type": "object"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object"
 }`
 
@@ -27,7 +27,7 @@ const (
             "type": "array"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object"
 }`
 
@@ -39,11 +39,11 @@ const (
         },
         "baz": {
             "$ref": "samples.cyclicalreference.Baz.json#",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "type": "object"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object"
 }`
 
@@ -55,11 +55,11 @@ const (
         },
         "foo": {
             "$ref": "samples.cyclicalreference.Foo.json#",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "type": "object"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object"
 }`
 )

@@ -13,6 +13,6 @@ const SelfReference = `{
             "type": "array"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object"
 }`

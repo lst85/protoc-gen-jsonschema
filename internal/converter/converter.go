@@ -17,17 +17,38 @@ import (
 
 // Converter is everything you need to convert protos to JSONSchemas:
 type Converter struct {
-	AllowNullValues              bool
-	DisallowAdditionalProperties bool
-	DisallowBigIntsAsStrings     bool
-	DisallowNumericEnumValues    bool
-	OpenApiConform               bool
-	OpenApiFile                  string
-	SingleOutputFile             string
-	UseProtoFieldnames           bool
-	logger                       *logrus.Logger
-	sourceInfo                   *sourceCodeInfo
-	generatorPlan                *generatorPlan
+	// Allow NULL values for all properties. By default, JSONSchemas will reject NULL values.
+	AllowNullValues bool
+	// Allow additional properties. JSONSchemas will allow extra parameters, that are not specified in the schema.
+	AllowAdditionalProperties bool
+	// If the parameter is not set (default) the JSONSchema will allow both string and integers for 64 bit integers.
+	// If it is set only integers are allowed.
+	// The canonical JSON encoding of Proto3 converts int64, fixed64, uint6 to JSON strings.
+	// When decoding JSON to ProtoBuf both numbers and strings are accepted.
+	DisallowBigIntsAsStrings bool
+	// Allow both enum names and integer values.
+	AllowNumericEnumValues bool
+	// Generate an OpenAPI v.3 file instead of JSONSchema file(s).
+	// All ProtoBuf types (messages, enums, etc.) will be converted to their JSONSchema equivalent and added to the
+	// components/schemas section of the OpenAPI document.
+	// NOTE: The generator currently ignores gRPC service definitions. The paths section of the generated OpenAPI
+	// document will be emtpy.
+	GenerateOpenApi bool
+	// Path to an OpenAPI file that will be merged with the generated schemas.
+	// This parameter has only an effect when the parameter open_api is set.
+	OpenApiFile string
+	// Create a single file instead of multiple files.
+	// When JSONSchema mode is enabled (parameter open_api is not set) a single JSONSchema will be generated with the
+	// given filename.
+	// When OpenAPI mode is enabled (parameter open_api is set) this parameter is implicitly enabled and the
+	// default filename is "openapi.json".
+	SingleOutputFile string
+	// If the parameter is set the field names from the ProtoBuf definition are used in the JSONSchema.
+	// If the parameter is not set message field names are mapped to lowerCamelCase and become JSON object keys.
+	UseProtoFieldNames bool
+	logger             *logrus.Logger
+	sourceInfo         *sourceCodeInfo
+	generatorPlan      *generatorPlan
 }
 
 // New returns a configured *Converter:
@@ -68,12 +89,12 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 			c.AllowNullValues = true
 		case parameter == "debug":
 			c.logger.SetLevel(logrus.DebugLevel)
-		case parameter == "disallow_additional_properties":
-			c.DisallowAdditionalProperties = true
+		case parameter == "allow_additional_properties":
+			c.AllowAdditionalProperties = true
 		case parameter == "disallow_bigints_as_strings":
 			c.DisallowBigIntsAsStrings = true
-		case parameter == "disallow_numeric_enum_values":
-			c.DisallowNumericEnumValues = true
+		case parameter == "allow_numeric_enum_values":
+			c.AllowNumericEnumValues = true
 		case strings.HasPrefix(parameter, "out_file"):
 			paramSplit := strings.Split(parameter, "=")
 			if len(paramSplit) != 2 || len(paramSplit[1]) == 0 {
@@ -82,9 +103,9 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 			} else {
 				c.SingleOutputFile = paramSplit[1]
 			}
-		case parameter == "open_api_conform":
-			c.OpenApiConform = true
-		case strings.HasPrefix(parameter, "open_api"):
+		case parameter == "open_api":
+			c.GenerateOpenApi = true
+		case strings.HasPrefix(parameter, "open_api_template"):
 			paramSplit := strings.Split(parameter, "=")
 			if len(paramSplit) != 2 || len(paramSplit[1]) == 0 {
 				c.logger.WithField("parameter", parameter).
@@ -93,13 +114,15 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 				c.OpenApiFile = paramSplit[1]
 			}
 		case parameter == "proto_fieldnames":
-			c.UseProtoFieldnames = true
+			c.UseProtoFieldNames = true
 		default:
 			c.logger.WithField("parameter", parameter).Warn("Unknown parameter")
 		}
 	}
 
-	if c.OpenApiFile != "" && c.SingleOutputFile == "" {
+	// If an OpenAPI document should be generated single file mode is always enabled. The default filename is
+	// openapi.json.
+	if c.GenerateOpenApi && c.SingleOutputFile == "" {
 		c.SingleOutputFile = "openapi.json"
 	}
 }
@@ -129,19 +152,12 @@ func (c *Converter) convert(req *plugin.CodeGeneratorRequest) (*plugin.CodeGener
 func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGeneratorResponse_File, error) {
 	typeInfos := c.generatorPlan.GetAllForTargetFilename(jsonSchemaFileName)
 
-	openApi := OpenAPI{}
-	if c.OpenApiFile != "" {
-		fileContent, err := ioutil.ReadFile(c.OpenApiFile)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(fileContent, &openApi)
-		if err != nil {
-			return nil, err
-		}
+	openApi, err := c.createOpenApiDocument()
+	if err != nil {
+		return nil, err
 	}
 
-	c.logger.WithField("file", jsonSchemaFileName).Info("Creating JSON schema file ...")
+	c.logger.WithField("file", jsonSchemaFileName).Debug("Creating JSON schema file ...")
 
 	definitions := jsonschema.Definitions{}
 	jsonSchema := &jsonschema.Schema{
@@ -166,9 +182,8 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 				return nil, err
 			}
 
-			// need to give that schema an ID
 			typeId := typeInfo.GetProtoFQTypeName()
-			if c.OpenApiFile != "" {
+			if c.GenerateOpenApi {
 				if openApi.Components.Schemas == nil {
 					openApi.Components.Schemas = Schemas{}
 				}
@@ -179,11 +194,9 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 		}
 	}
 
+	// Marshal the result into a JSON-Schema or OpenAPI document:
 	var jsonSchemaJSON []byte = nil
-	if c.OpenApiFile != "" {
-		if openApi.OpenAPI == "" {
-			openApi.OpenAPI = "3.0.0"
-		}
+	if c.GenerateOpenApi {
 		jsonBytes, err := json.MarshalIndent(openApi, "", "    ")
 		if err != nil {
 			c.logger.WithError(err).Error("Failed to encode OpenApi document")
@@ -191,9 +204,12 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 		}
 		jsonSchemaJSON = jsonBytes
 	} else {
-		// Marshal the JSON-Schema into JSON:
+		// JSON schema must have a top level type. When single file mode is enabled all types are generated in the
+		// definitions section and thus we add an artifical top-level type to the schema.
 		if jsonSchema.Type == nil {
-			jsonSchema.Type = &jsonschema.Type{}
+			jsonSchema.Type = &jsonschema.Type{
+				Type: "nil",
+			}
 		}
 		jsonBytes, err := json.MarshalIndent(jsonSchema, "", "    ")
 		if err != nil {
@@ -210,6 +226,31 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 	}
 
 	return resFile, nil
+}
+
+func (c *Converter) createOpenApiDocument() (*OpenAPI, error) {
+	openApi := OpenAPI{}
+	if c.OpenApiFile != "" {
+		fileContent, err := ioutil.ReadFile(c.OpenApiFile)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(fileContent, &openApi)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// OpenAPI version is mandatory
+	if openApi.OpenAPI == "" {
+		openApi.OpenAPI = "3.0.0"
+	}
+
+	// Paths is mandatory
+	if openApi.Paths == nil {
+		openApi.Paths = []byte("{}")
+	}
+	return &openApi, nil
 }
 
 func (c *Converter) calcGeneratorPlan(req *plugin.CodeGeneratorRequest) error {
@@ -231,7 +272,7 @@ func (c *Converter) calcGeneratorPlan(req *plugin.CodeGeneratorRequest) error {
 		}
 	}
 
-	c.logger.WithField("plan", c.generatorPlan).Info("Generator Plan")
+	c.logger.WithField("plan", c.generatorPlan).Debug("Generator Plan")
 	return nil
 }
 

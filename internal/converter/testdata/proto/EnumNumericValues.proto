@@ -1,7 +1,7 @@
 syntax = "proto3";
 package samples.subpackage;
 
-message EnumNoNumericValuesMsg {
+message EnumNumericValuesMsg {
     string description = 1;
     enum InlineEnum {
         FOO = 0;
@@ -10,11 +10,11 @@ message EnumNoNumericValuesMsg {
         BUZZ = 3;
     }
     InlineEnum stuff = 2;
-    EnumNoNumericValuesMsg2.NestedEnum nestedEnum = 3;
-    EnumNoNumericValuesTopLevelEnum topLevelEnum = 4;
+    EnumNumericValuesMsg2.NestedEnum nestedEnum = 3;
+    EnumNumericValuesTopLevelEnum topLevelEnum = 4;
 }
 
-message EnumNoNumericValuesMsg2 {
+message EnumNumericValuesMsg2 {
     enum NestedEnum {
         FOO = 0;
         BAR = 1;
@@ -24,7 +24,7 @@ message EnumNoNumericValuesMsg2 {
     }
 }
 
-enum EnumNoNumericValuesTopLevelEnum {
+enum EnumNumericValuesTopLevelEnum {
     FRR = 0;
     FRA = 1;
 }

@@ -12,29 +12,18 @@ const ArrayOfEnums = `{
             "type": "array"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object",
     "definitions": {
         "ArrayOfEnums.inline": {
             "$schema": "http://json-schema.org/draft-04/schema#",
             "enum": [
                 "FOO",
-                0,
                 "BAR",
-                1,
                 "FIZZ",
-                2,
-                "BUZZ",
-                3
+                "BUZZ"
             ],
-            "oneOf": [
-                {
-                    "type": "string"
-                },
-                {
-                    "type": "integer"
-                }
-            ]
+            "type": "string"
         }
     }
 }`

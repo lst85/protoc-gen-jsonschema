@@ -19,7 +19,7 @@ const FirstMessage = `{
             "type": "boolean"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object"
 }`
 
@@ -42,6 +42,6 @@ const SecondMessage = `{
             "type": "boolean"
         }
     },
-    "additionalProperties": true,
+    "additionalProperties": false,
     "type": "object"
 }`
