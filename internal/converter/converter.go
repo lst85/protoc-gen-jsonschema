@@ -15,21 +15,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Converter is everything you need to convert protos to JSONSchemas:
+// Converter is everything you need to convert protos to JSON Schemas:
 type Converter struct {
-	// Allow NULL values for all properties. By default, JSONSchemas will reject NULL values.
+	// Allow NULL values for all properties. By default, JSON Schemas will reject NULL values.
 	AllowNullValues bool
-	// Allow additional properties. JSONSchemas will allow extra parameters, that are not specified in the schema.
+	// Allow additional properties. JSON Schemas will allow extra parameters, that are not specified in the schema.
 	AllowAdditionalProperties bool
-	// If the parameter is not set (default) the JSONSchema will allow both string and integers for 64 bit integers.
+	// If the parameter is not set (default) the JSON Schema will allow both string and integers for 64 bit integers.
 	// If it is set only integers are allowed.
 	// The canonical JSON encoding of Proto3 converts int64, fixed64, uint6 to JSON strings.
 	// When decoding JSON to ProtoBuf both numbers and strings are accepted.
 	DisallowBigIntsAsStrings bool
 	// Allow both enum names and integer values.
 	AllowNumericEnumValues bool
-	// Generate an OpenAPI v.3 file instead of JSONSchema file(s).
-	// All ProtoBuf types (messages, enums, etc.) will be converted to their JSONSchema equivalent and added to the
+	// Generate an OpenAPI v.3 file instead of JSON Schema file(s).
+	// All ProtoBuf types (messages, enums, etc.) will be converted to their JSON Schema equivalent and added to the
 	// components/schemas section of the OpenAPI document.
 	// NOTE: The generator currently ignores gRPC service definitions. The paths section of the generated OpenAPI
 	// document will be emtpy.
@@ -38,12 +38,12 @@ type Converter struct {
 	// This parameter has only an effect when the parameter open_api is set.
 	OpenApiFile string
 	// Create a single file instead of multiple files.
-	// When JSONSchema mode is enabled (parameter open_api is not set) a single JSONSchema will be generated with the
+	// When JSON Schema mode is enabled (parameter open_api is not set) a single JSON Schema will be generated with the
 	// given filename.
 	// When OpenAPI mode is enabled (parameter open_api is set) this parameter is implicitly enabled and the
 	// default filename is "openapi.json".
 	SingleOutputFile string
-	// If the parameter is set the field names from the ProtoBuf definition are used in the JSONSchema.
+	// If the parameter is set the field names from the ProtoBuf definition are used in the JSON Schema.
 	// If the parameter is not set message field names are mapped to lowerCamelCase and become JSON object keys.
 	UseProtoFieldNames bool
 	logger             *logrus.Logger
