@@ -1,46 +1,70 @@
 ![Go](https://github.com/lst85/protoc-gen-jsonschema/workflows/Go/badge.svg?branch=master)
 
-Protobuf to JSON-Schema compiler
-================================
-This takes protobuf definitions and converts them into JSONSchemas, which can be used to dynamically validate JSON messages.
+Protobuf to JSON-Schema and OpenAPI v3 compiler
+================================================
+This is a protoc plugin that takes protocol buffers definitions and converts them into JSONSchemas or OpenAPI v.3 documents.
 
 This will hopefully be useful for people who define their data using ProtoBuf, but use JSON for the "wire" format.
 
-"Heavily influenced" by [Google's protobuf-to-BigQuery-schema compiler](https://github.com/GoogleCloudPlatform/protoc-gen-bq-schema).
+Forked from [chrusty/protoc-gen-jsonschema](https://github.com/chrusty/protoc-gen-jsonschema) and
+"heavily influenced" by [Google's protobuf-to-BigQuery-schema compiler](https://github.com/GoogleCloudPlatform/protoc-gen-bq-schema).
 
 
 Installation
 ------------
-`GO111MODULE=on go get github.com/chrusty/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema && go install github.com/chrusty/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema`
+
+First install Go and [protoc](https://github.com/protocolbuffers/protobuf), then install the plugin with:
+`GO111MODULE=on go get github.com/lst85/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema && go install github.com/lst85/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema`
 
 Links
 -----
 * [About JSON Schema](http://json-schema.org/)
-* [Popular GoLang JSON-Schema validation library](https://github.com/xeipuuv/gojsonschema)
-* [Another GoLang JSON-Schema validation library](https://github.com/lestrrat/go-jsschema)
-
+* [proto3 Language Guide](https://developers.google.com/protocol-buffers/docs/proto3#json)
+* [OpenAPI Specification version 3.0.0](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md)
 
 Usage
 -----
-* Allow NULL values (by default, JSONSchemas will reject NULL values unless we explicitly allow them):
-    `protoc --jsonschema_out=allow_null_values:. --proto_path=testdata/proto testdata/proto/ArrayOfPrimitives.proto`
-* Disallow additional properties (JSONSchemas won't validate JSON containing extra parameters):
-    `protoc --jsonschema_out=disallow_additional_properties:. --proto_path=testdata/proto testdata/proto/ArrayOfPrimitives.proto`
-* Disallow permissive validation of big-integers as strings (eg scientific notation):
-    `protoc --jsonschema_out=disallow_bigints_as_strings:. --proto_path=testdata/proto testdata/proto/ArrayOfPrimitives.proto`
-* Enable debug logging:
-    `protoc --jsonschema_out=debug:. --proto_path=testdata/proto testdata/proto/ArrayOfPrimitives.proto`
 
+Simply invoke `protoc` with the `--jsonschema_out` command-line parameter:
+
+```
+protoc --jsonschema_out="<OUT_DIR>" input.proto
+protoc --jsonschema_out="<OPTIONS>:<OUT_DIR>" input.proto
+```
+
+Where `<OPTIONS>` is a comma-seperated list of `key=value,key2` options (which are listed in detail below). 
+
+For example:
+
+`protoc --jsonschema_out="my_schemas/" file.proto`
+would produce JSONschemas for `file.proto` inside the `my_schemas/` directory. 
+
+`protoc --jsonschema_out="open_api,open_api_template=template.json:my_schemas/" file.proto`
+would produce an OpenAPI document for `file.proto` inside the `my_schemas/` directory using the OpenAPI template from `template.json`.
+
+Options
+-----
+
+| Option              | Description |
+| `allow_null_values` | Allow NULL values for all properties. By default, JSONSchemas will reject NULL values. |
+| `allow_additional_properties` | Allow additional properties. JSONSchemas will allow extra parameters, that are not specified in the schema. |
+| `debug` | Enable debug logging. |
+| `disallow_bigints_as_strings` | If the parameter is not set (default) the JSONSchema will allow both string and integers for 64 bit integers. If it is set only integers are allowed. The canonical JSON encoding of Proto3 converts int64, fixed64, uint6 to JSON strings. When decoding JSON to ProtoBuf both numbers and strings are accepted. |
+| `allow_numeric_enum_values` | Allow both enum names and integer values. |
+| `out_file=<file>` | Create a single file instead of multiple files. When JSONSchema mode is enabled (parameter `open_api` is not set) a single JSONSchema will be generated with the given filename. When OpenAPI mode is enabled (parameter `open_api` is set) this parameter is implicitly enabled and the default filename is `openapi.json`. |
+| `open_api` | Generate an OpenAPI v.3 file instead of JSONSchema file(s). All ProtoBuf types (messages, enums, etc.) will be converted to their JSONSchema equivalent and added to the components/schemas section of the OpenAPI document. NOTE: The generator currently ignores gRPC service definitions. The paths section of the generated OpenAPI document will be emtpy. |
+| `open_api_template=<file>` | Path to an OpenAPI file that will be merged with the generated schemas. This parameter has only an effect when the parameter `open_api` is set. |
+| `proto_fieldnames` | If the parameter is set the field names from the ProtoBuf definition are used in the JSONSchema. If the parameter is not set message field names are mapped to lowerCamelCase and become JSON object keys. |
 
 Sample protos (for testing)
 ---------------------------
-* Proto with a simple (flat) structure: [samples.PayloadMessage](testdata/proto/PayloadMessage.proto)
-* Proto containing a nested object (defined internally): [samples.NestedObject](testdata/proto/NestedObject.proto)
-* Proto containing a nested message (defined in a different proto file): [samples.NestedMessage](testdata/proto/NestedMessage.proto)
-* Proto containing an array of a primitive types (string, int): [samples.ArrayOfPrimitives](testdata/proto/ArrayOfPrimitives.proto)
-* Proto containing an array of objects (internally defined): [samples.ArrayOfObjects](testdata/proto/ArrayOfObjects.proto)
-* Proto containing an array of messages (defined in a different proto file): [samples.ArrayOfMessage](testdata/proto/ArrayOfMessage.proto)
-* Proto containing multi-level enums (flat and nested and arrays): [samples.Enumception](testdata/proto/Enumception.proto)
-* Proto containing a stand-alone enum: [samples.ImportedEnum](testdata/proto/ImportedEnum.proto)
-* Proto containing 2 stand-alone enums: [samples.FirstEnum, samples.SecondEnum](testdata/proto/SeveralEnums.proto)
-* Proto containing 2 messages: [samples.FirstMessage, samples.SecondMessage](testdata/proto/SeveralMessages.proto)
+* Proto with a simple (flat) structure: [samples.PayloadMessage](internal/converter/testdata/proto/PayloadMessage.proto)
+* Proto containing a nested object (defined internally): [samples.NestedObject](internal/converter/testdata/proto/NestedObject.proto)
+* Proto containing a nested message (defined in a different proto file): [samples.NestedMessage](internal/converter/testdata/proto/NestedMessage.proto)
+* Proto containing an array of a primitive types (string, int): [samples.ArrayOfPrimitives](internal/converter/testdata/proto/ArrayOfPrimitives.proto)
+* Proto containing an array of objects (internally defined): [samples.ArrayOfObjects](internal/converter/testdata/proto/ArrayOfObjects.proto)
+* Proto containing an array of messages (defined in a different proto file): [samples.ArrayOfMessage](internal/converter/testdata/proto/ArrayOfMessage.proto)
+* Proto containing multi-level enums (flat and nested and arrays): [samples.Enumception](internal/converter/testdata/proto/Enumception.proto)
+* Proto containing a stand-alone enum: [samples.ImportedEnum](internal/converter/testdata/proto/ImportedEnum.proto)
+* Proto containing 2 stand-alone enums: [samples.FirstEnum, samples.SecondEnum](internal/converter/testdata/proto/SeveralEnums.proto)
+* Proto containing 2 messages: [samples.FirstMessage, samples.SecondMessage](internal/converter/testdata/proto/SeveralMessages.proto)

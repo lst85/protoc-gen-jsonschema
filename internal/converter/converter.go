@@ -87,10 +87,10 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 		case parameter == "": // ignore empty parameter
 		case parameter == "allow_null_values":
 			c.AllowNullValues = true
-		case parameter == "debug":
-			c.logger.SetLevel(logrus.DebugLevel)
 		case parameter == "allow_additional_properties":
 			c.AllowAdditionalProperties = true
+		case parameter == "debug":
+			c.logger.SetLevel(logrus.DebugLevel)
 		case parameter == "disallow_bigints_as_strings":
 			c.DisallowBigIntsAsStrings = true
 		case parameter == "allow_numeric_enum_values":
