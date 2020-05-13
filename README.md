@@ -2,9 +2,7 @@
 
 Protobuf to JSON Schema and OpenAPI 3.0 compiler
 ================================================
-This is a protoc plugin that takes protocol buffers definitions and converts them into JSON Schemas or OpenAPI 3.0 documents.
-
-This will hopefully be useful for people who define their data using ProtoBuf, but use JSON for the "wire" format.
+This is a protoc plugin that takes protocol buffers definitions and converts them into JSON Schemas or OpenAPI 3.0 documents. It will hopefully be useful for people who define their data using ProtoBuf, but use JSON for the "wire" format.
 
 Forked from [chrusty/protoc-gen-jsonschema](https://github.com/chrusty/protoc-gen-jsonschema) and
 "heavily influenced" by [Google's protobuf-to-BigQuery-schema compiler](https://github.com/GoogleCloudPlatform/protoc-gen-bq-schema).
