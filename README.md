@@ -1,8 +1,8 @@
 ![Go](https://github.com/lst85/protoc-gen-jsonschema/workflows/Go/badge.svg?branch=master)
 
-Protobuf to JSON Schema and OpenAPI v3 compiler
+Protobuf to JSON Schema and OpenAPI 3.0 compiler
 ================================================
-This is a protoc plugin that takes protocol buffers definitions and converts them into JSON Schemas or OpenAPI v.3 documents.
+This is a protoc plugin that takes protocol buffers definitions and converts them into JSON Schemas or OpenAPI 3.0 documents.
 
 This will hopefully be useful for people who define their data using ProtoBuf, but use JSON for the "wire" format.
 
@@ -54,6 +54,6 @@ Options
 | `disallow_bigints_as_strings` | If the parameter is not set (default) the JSON Schema will allow both string and integers for 64 bit integers. If it is set only integers are allowed. The canonical JSON encoding of Proto3 converts int64, fixed64, uint6 to JSON strings. When decoding JSON to ProtoBuf both numbers and strings are accepted. |
 | `allow_numeric_enum_values` | Allow both enum names and integer values. |
 | `out_file=<file>` | Create a single file instead of multiple files. When JSON Schema mode is enabled (parameter `open_api` is not set) a single JSON Schema will be generated with the given filename. When OpenAPI mode is enabled (parameter `open_api` is set) this parameter is implicitly enabled and the default filename is `openapi.json`. |
-| `open_api` | Generate an OpenAPI v.3 file instead of JSON Schema file(s). All ProtoBuf types (messages, enums, etc.) will be converted to their JSON Schema equivalent and added to the components/schemas section of the OpenAPI document. *The generator currently ignores gRPC service definitions.* The paths section of the generated OpenAPI document will be emtpy. |
+| `open_api` | Generate an OpenAPI 3.0 file instead of JSON Schema file(s). All ProtoBuf types (messages, enums, etc.) will be converted to their JSON Schema equivalent and added to the components/schemas section of the OpenAPI document. *The generator currently ignores gRPC service definitions.* The paths section of the generated OpenAPI document will be emtpy. |
 | `open_api_template=<file>` | Path to an OpenAPI file that will be merged with the generated schemas. This parameter has only an effect when the parameter `open_api` is set. |
 | `proto_fieldnames` | If the parameter is set the field names from the ProtoBuf definition are used in the JSON Schema. If the parameter is not set message field names are mapped to lowerCamelCase and become JSON object keys. |
