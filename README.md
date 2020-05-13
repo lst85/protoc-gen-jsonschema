@@ -1,6 +1,6 @@
 ![Go](https://github.com/lst85/protoc-gen-jsonschema/workflows/Go/badge.svg?branch=master)
 
-Protobuf to JSON-Schema and OpenAPI v3 compiler
+Protobuf to JSON Schema and OpenAPI v3 compiler
 ================================================
 This is a protoc plugin that takes protocol buffers definitions and converts them into JSONSchemas or OpenAPI v.3 documents.
 
@@ -14,13 +14,14 @@ Installation
 ------------
 
 First install Go and [protoc](https://github.com/protocolbuffers/protobuf), then install the plugin with:
+
 `GO111MODULE=on go get github.com/lst85/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema && go install github.com/lst85/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema`
 
 Links
 -----
 * [About JSON Schema](http://json-schema.org/)
-* [proto3 Language Guide](https://developers.google.com/protocol-buffers/docs/proto3#json)
-* [OpenAPI Specification version 3.0.0](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md)
+* [Proto3 Language Guide](https://developers.google.com/protocol-buffers/docs/proto3#json)
+* [OpenAPI Specification Version 3.0.0](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md)
 
 Usage
 -----
@@ -37,15 +38,16 @@ Where `<OPTIONS>` is a comma-seperated list of `key=value,key2` options (which a
 For example:
 
 `protoc --jsonschema_out="my_schemas/" file.proto`
-would produce JSONschemas for `file.proto` inside the `my_schemas/` directory. 
+would produce JSON schemas for `file.proto` inside the `my_schemas/` directory. 
 
 `protoc --jsonschema_out="open_api,open_api_template=template.json:my_schemas/" file.proto`
-would produce an OpenAPI document for `file.proto` inside the `my_schemas/` directory using the OpenAPI template from `template.json`.
+would produce an OpenAPI document for `file.proto` inside the `my_schemas/` directory using the template from `template.json`.
 
 Options
 -----
 
 | Option              | Description |
+|---------------------|-------------|
 | `allow_null_values` | Allow NULL values for all properties. By default, JSONSchemas will reject NULL values. |
 | `allow_additional_properties` | Allow additional properties. JSONSchemas will allow extra parameters, that are not specified in the schema. |
 | `debug` | Enable debug logging. |
