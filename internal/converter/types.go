@@ -261,6 +261,7 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 		// Objects:
 		default:
 			jsonSchemaType.Ref = c.getJsonRefValue(typeInfo, fieldType)
+			jsonSchemaType.Type = "" // If $ref is set the property type must not be set
 			jsonSchemaType.AdditionalProperties = c.getAdditionalPropertiesValue()
 		}
 
