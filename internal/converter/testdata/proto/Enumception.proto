@@ -7,16 +7,17 @@ import "_ImportedEnum.proto";
 message Enumception {
     enum FailureModes {
         RECURSION_ERROR = 0;
-        SYNTAX_ERROR    = 1;
+        SYNTAX_ERROR = 1;
     }
 
-    string name                      = 1;
-    string timestamp                 = 2;
-    int32 id                         = 3;
-    float rating                     = 4;
-    bool complete                    = 5;
-    FailureModes failureMode         = 6;
-    ImportedMessage payload           = 7;
+    string name = 1;
+    string timestamp = 2;
+    int32 id = 3;
+    float rating = 4;
+    bool complete = 5;
+    FailureModes failureMode = 6;
+    ImportedMessage payload = 7;
     repeated ImportedMessage payloads = 8;
-    ImportedEnum importedEnum        = 9;
+    ImportedEnum importedEnum = 9;
+    repeated ImportedEnum importedEnums = 10;
 }

@@ -34,6 +34,12 @@ const Enumception = `{
         },
         "importedEnum": {
             "$ref": "samples.enumception.ImportedEnum.json#"
+        },
+        "importedEnums": {
+            "items": {
+                "$ref": "samples.enumception.ImportedEnum.json#"
+            },
+            "type": "array"
         }
     },
     "additionalProperties": true,

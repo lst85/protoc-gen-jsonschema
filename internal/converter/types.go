@@ -185,15 +185,20 @@ func (c *Converter) convertField(typeInfo *protoTypeInfo, desc *descriptor.Field
 	if desc.GetLabel() == descriptor.FieldDescriptorProto_LABEL_REPEATED && jsonSchemaType.Type != gojsonschema.TYPE_OBJECT {
 		jsonSchemaType.Items = &jsonschema.Type{}
 
-		if len(jsonSchemaType.Enum) > 0 {
-			jsonSchemaType.Items.Enum = jsonSchemaType.Enum
-			jsonSchemaType.Enum = nil
-			jsonSchemaType.Items.OneOf = nil
-		} else {
-			jsonSchemaType.Items.Type = jsonSchemaType.Type
-			jsonSchemaType.Items.OneOf = jsonSchemaType.OneOf
-		}
+		// Copy all relevant properties to the items section:
+		jsonSchemaType.Items.Enum = jsonSchemaType.Enum
+		jsonSchemaType.Enum = nil
 
+		jsonSchemaType.Items.Type = jsonSchemaType.Type
+		jsonSchemaType.Type = ""
+
+		jsonSchemaType.Items.OneOf = jsonSchemaType.OneOf
+		jsonSchemaType.OneOf = nil
+
+		jsonSchemaType.Items.Ref = jsonSchemaType.Ref
+		jsonSchemaType.Ref = ""
+
+		// Set the type to array:
 		if c.AllowNullValues {
 			jsonSchemaType.OneOf = []*jsonschema.Type{
 				{Type: gojsonschema.TYPE_NULL},

@@ -7,8 +7,9 @@ const ArrayOfEnums = `{
             "type": "string"
         },
         "stuff": {
-            "$ref": "#/definitions/ArrayOfEnums.inline",
-            "items": {},
+            "items": {
+                "$ref": "#/definitions/ArrayOfEnums.inline"
+            },
             "type": "array"
         }
     },
