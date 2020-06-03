@@ -6,8 +6,7 @@ const (
     "properties": {
         "foo": {
             "$ref": "samples.cyclicalreference.Foo.json#",
-            "additionalProperties": false,
-            "type": "object"
+            "additionalProperties": false
         }
     },
     "additionalProperties": false,
@@ -39,8 +38,7 @@ const (
         },
         "baz": {
             "$ref": "samples.cyclicalreference.Baz.json#",
-            "additionalProperties": false,
-            "type": "object"
+            "additionalProperties": false
         }
     },
     "additionalProperties": false,
@@ -55,8 +53,7 @@ const (
         },
         "foo": {
             "$ref": "samples.cyclicalreference.Foo.json#",
-            "additionalProperties": false,
-            "type": "object"
+            "additionalProperties": false
         }
     },
     "additionalProperties": false,

@@ -18,8 +18,7 @@ const Maps = `{
         "mapOfMessages": {
             "additionalProperties": {
                 "$ref": "#/definitions/Maps.PayloadMessage",
-                "additionalProperties": false,
-                "type": "object"
+                "additionalProperties": false
             },
             "type": "object"
         }
@@ -48,8 +47,7 @@ const Maps = `{
                 },
                 "value": {
                     "$ref": "#/definitions/Maps.PayloadMessage",
-                    "additionalProperties": false,
-                    "type": "object"
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false,

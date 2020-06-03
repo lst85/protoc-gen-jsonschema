@@ -10,8 +10,7 @@ const AdditionalProperties = `{
                     },
                     "message": {
                         "$ref": "#/components/schemas/AdditionalProperties.NestedMessage",
-                        "additionalProperties": {},
-                        "type": "object"
+                        "additionalProperties": {}
                     },
                     "repeatedPrimitive": {
                         "items": {

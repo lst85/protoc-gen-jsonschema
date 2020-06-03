@@ -51,6 +51,7 @@ func TestGenerateJsonSchema(t *testing.T) {
 	testConvertSampleProto(t, sampleProtos["Maps"])
 	testConvertSampleProto(t, sampleProtos["MessageWithComments"])
 	testConvertSampleProto(t, sampleProtos["NestedObject"])
+	testConvertSampleProto(t, sampleProtos["NoPackage"])
 	testConvertSampleProto(t, sampleProtos["OpenApi"])
 	testConvertSampleProto(t, sampleProtos["SelfReference"])
 	testConvertSampleProto(t, sampleProtos["SeveralEnums"])
@@ -188,6 +189,14 @@ func configureSampleProtos() {
 		ExpectedJSONSchema:       []string{testdata.NestedObject},
 		FilesToGenerate:          []string{"NestedObject.proto"},
 		ProtoFileName:            "NestedObject.proto",
+	}
+
+	// NoPackage:
+	sampleProtos["NoPackage"] = sampleProto{
+		DisallowBigIntsAsStrings: true,
+		ExpectedJSONSchema:       []string{testdata.NoPackageMsg, testdata.NoPackageOtherMsg},
+		FilesToGenerate:          []string{"NoPackage.proto"},
+		ProtoFileName:            "NoPackage.proto",
 	}
 
 	// OpenApi:

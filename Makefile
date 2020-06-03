@@ -44,6 +44,7 @@ samples:
 	$(call build_sample,Maps.proto,)
 	$(call build_sample,MessageWithComments.proto,)
 	$(call build_sample,NestedObject.proto,disallow_bigints_as_strings)
+	$(call build_sample,NoPackage.proto,)
 	$(call build_sample,OpenApi.proto,open_api$(comma)out_file=openapi.json$(comma)open_api_template=${proto_path}/openapi.json)
 	$(call build_sample,SelfReference.proto,disallow_bigints_as_strings)
 	$(call build_sample,SeveralEnums.proto,disallow_bigints_as_strings)

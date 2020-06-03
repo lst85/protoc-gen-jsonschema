@@ -56,7 +56,6 @@ func (g *generatorPlan) GetAllTargetFilenames() []string {
 }
 
 func (g *generatorPlan) LookupType(typeName string) *protoTypeInfo {
-	typeName = strings.Trim(typeName, ".")
 	return g.typeLookup[typeName]
 }
 
@@ -96,6 +95,14 @@ func newProtoTypeInfo(targetFileName string,
 	tInfo.protoEnum = protoEnum
 
 	tInfo.protoPackage = strings.Split(protoPackage, ".")
+	if len(protoPackage) > 0 {
+		// ProtoBuf implicitly uses a package with an empty name (i.e. "") as the first outermost package.
+		// This creates a leading dot (.) in the full qualified type name. For example:
+		// mypackage.MyType becomes .mypackage.MyType
+		// MyType (no package) becomes .MyType
+		// See https://developers.google.com/protocol-buffers/docs/proto3#packages-and-name-resolution
+		tInfo.protoPackage = append([]string{""}, tInfo.protoPackage...)
+	}
 
 	tInfo.protoFQName = make([]string, 0, 10)
 	if parent != nil {

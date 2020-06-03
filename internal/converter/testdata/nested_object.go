@@ -5,8 +5,7 @@ const NestedObject = `{
     "properties": {
         "payload": {
             "$ref": "#/definitions/NestedObject.NestedPayload",
-            "additionalProperties": false,
-            "type": "object"
+            "additionalProperties": false
         },
         "description": {
             "type": "string"

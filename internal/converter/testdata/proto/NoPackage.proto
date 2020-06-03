@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+message NoPackageMsg {
+    message NestedMsg {
+        enum NestedEnum {
+            FLAT = 0;
+            NESTED_OBJECT = 1;
+        }
+
+        string name = 1;
+        NestedEnum nest_enum = 2;
+    }
+
+    NestedMsg payload = 1;
+    string description = 2;
+    NestedMsg.NestedEnum nest_enum = 3;
+    NoPackageOtherMsg other_msg = 4;
+}
+
+message NoPackageOtherMsg {
+    string prop = 1;
+    NoPackageMsg msg = 2;
+    NoPackageMsg.NestedMsg.NestedEnum nest_enum = 3;
+}

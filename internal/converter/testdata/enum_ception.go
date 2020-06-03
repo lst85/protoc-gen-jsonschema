@@ -23,8 +23,7 @@ const Enumception = `{
         },
         "payload": {
             "$ref": "samples.enumception.ImportedMessage.json#",
-            "additionalProperties": true,
-            "type": "object"
+            "additionalProperties": true
         },
         "payloads": {
             "items": {
