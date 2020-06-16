@@ -11,11 +11,11 @@ build-linux: GOOS = linux
 build-linux: GOARCH = amd64
 build-linux: protoc-gen-jsonschema.linux-amd64
 
-build-windows: GOOS = linux
+build-windows: GOOS = windows
 build-windows: GOARCH = amd64
 build-windows: protoc-gen-jsonschema.windows-amd64
 
-build-darwin: GOOS = linux
+build-darwin: GOOS = darwin
 build-darwin: GOARCH = amd64
 build-darwin: protoc-gen-jsonschema.darwin-amd64
 
