@@ -13,12 +13,13 @@ type generatorPlan struct {
 }
 
 type protoTypeInfo struct {
-	targetFileName     string
-	jsonSchemaTopLevel bool
-	protoPackage       []string
-	protoFQName        []string
-	protoMsg           *descriptor.DescriptorProto
-	protoEnum          *descriptor.EnumDescriptorProto
+	targetFileName        string
+	jsonSchemaTopLevel    bool
+	uniqueOnlyWithPackage bool
+	protoPackage          []string
+	protoName             []string
+	protoMsg              *descriptor.DescriptorProto
+	protoEnum             *descriptor.EnumDescriptorProto
 }
 
 func NewGeneratorPlan() *generatorPlan {
@@ -32,11 +33,23 @@ func (g *generatorPlan) Put(tInfo *protoTypeInfo) error {
 	targetFileName := tInfo.GetTargetFileName()
 	g.targetFileLookup[targetFileName] = append(g.targetFileLookup[targetFileName], tInfo)
 
+	// Check if two types exists that have the same name but are located in different packages.
+	// Normally the type name that is used in the OpenAPI schema does not contain the ProtoBuf package.
+	// That makes it easier to read the OpenAPI specification. However, if to types have the same name the package
+	// has to be appended to make them unique.
+	for _, element := range g.typeLookup {
+		if element.GetProtoTypeName() == tInfo.GetProtoTypeName() {
+			element.uniqueOnlyWithPackage = true
+			tInfo.uniqueOnlyWithPackage = true
+		}
+	}
+
 	typeName := strings.Join(tInfo.getFullNameHierarchy(), ".")
 	if g.typeLookup[typeName] != nil {
 		return fmt.Errorf("type with full qualified name already exists: %s", typeName)
 	}
 	g.typeLookup[typeName] = tInfo
+
 	return nil
 }
 
@@ -93,6 +106,7 @@ func newProtoTypeInfo(targetFileName string,
 	tInfo.jsonSchemaTopLevel = jsonSchemaTopLevel
 	tInfo.protoMsg = protoMsg
 	tInfo.protoEnum = protoEnum
+	tInfo.uniqueOnlyWithPackage = false
 
 	tInfo.protoPackage = strings.Split(protoPackage, ".")
 	if len(protoPackage) > 0 {
@@ -104,15 +118,15 @@ func newProtoTypeInfo(targetFileName string,
 		tInfo.protoPackage = append([]string{""}, tInfo.protoPackage...)
 	}
 
-	tInfo.protoFQName = make([]string, 0, 10)
+	tInfo.protoName = make([]string, 0, 10)
 	if parent != nil {
-		tInfo.protoFQName = append(tInfo.protoFQName, parent.protoFQName...)
+		tInfo.protoName = append(tInfo.protoName, parent.protoName...)
 	}
 
 	if tInfo.protoMsg != nil {
-		tInfo.protoFQName = append(tInfo.protoFQName, tInfo.protoMsg.GetName())
+		tInfo.protoName = append(tInfo.protoName, tInfo.protoMsg.GetName())
 	} else {
-		tInfo.protoFQName = append(tInfo.protoFQName, tInfo.protoEnum.GetName())
+		tInfo.protoName = append(tInfo.protoName, tInfo.protoEnum.GetName())
 	}
 
 	return tInfo
@@ -126,12 +140,19 @@ func (p *protoTypeInfo) GenerateAtTopLevel() bool {
 	return p.jsonSchemaTopLevel
 }
 
-func (p *protoTypeInfo) GetProtoFQTypeName() string {
-	return strings.Join(p.protoFQName, ".")
+func (p *protoTypeInfo) GetProtoTypeName() string {
+	return strings.Trim(strings.Join(p.protoName, "."), ".")
 }
 
-func (p *protoTypeInfo) GetProtoTypeName() string {
-	return strings.Join(append(p.protoPackage, p.protoFQName...), ".")
+func (p *protoTypeInfo) GetProtoFQTypeName() string {
+	var name []string
+	if p.uniqueOnlyWithPackage {
+		name = append(p.protoPackage, p.protoName...)
+	} else {
+		name = p.protoName
+	}
+
+	return strings.Trim(strings.Join(name, "."), ".")
 }
 
 func (p *protoTypeInfo) IsProtoMessage() bool {
@@ -155,5 +176,5 @@ func (p *protoTypeInfo) String() string {
 }
 
 func (p *protoTypeInfo) getFullNameHierarchy() []string {
-	return append(p.protoPackage, p.protoFQName...)
+	return append(p.protoPackage, p.protoName...)
 }
