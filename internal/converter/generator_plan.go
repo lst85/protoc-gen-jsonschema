@@ -14,7 +14,6 @@ type generatorPlan struct {
 
 type protoTypeInfo struct {
 	targetFileName        string
-	jsonSchemaTopLevel    bool
 	uniqueOnlyWithPackage bool
 	protoPackage          []string
 	protoName             []string
@@ -82,28 +81,26 @@ func (b *generatorPlan) String() string {
 	return result
 }
 
-func NewProtoTypeInfoForMsg(targetFileName string, jsonSchemaTopLevel bool, protoPackage string, parent *protoTypeInfo,
+func NewProtoTypeInfoForMsg(targetFileName string, protoPackage string, parent *protoTypeInfo,
 	protoMsg *descriptor.DescriptorProto) *protoTypeInfo {
 
-	return newProtoTypeInfo(targetFileName, protoPackage, parent, jsonSchemaTopLevel, nil, protoMsg)
+	return newProtoTypeInfo(targetFileName, protoPackage, parent, nil, protoMsg)
 }
 
-func NewProtoTypeInfoForEnum(targetFileName string, jsonSchemaTopLevel bool, protoPackage string, parent *protoTypeInfo,
+func NewProtoTypeInfoForEnum(targetFileName string, protoPackage string, parent *protoTypeInfo,
 	protoEnum *descriptor.EnumDescriptorProto) *protoTypeInfo {
 
-	return newProtoTypeInfo(targetFileName, protoPackage, parent, jsonSchemaTopLevel, protoEnum, nil)
+	return newProtoTypeInfo(targetFileName, protoPackage, parent, protoEnum, nil)
 }
 
 func newProtoTypeInfo(targetFileName string,
 	protoPackage string,
 	parent *protoTypeInfo,
-	jsonSchemaTopLevel bool,
 	protoEnum *descriptor.EnumDescriptorProto,
 	protoMsg *descriptor.DescriptorProto) *protoTypeInfo {
 
 	tInfo := new(protoTypeInfo)
 	tInfo.targetFileName = targetFileName
-	tInfo.jsonSchemaTopLevel = jsonSchemaTopLevel
 	tInfo.protoMsg = protoMsg
 	tInfo.protoEnum = protoEnum
 	tInfo.uniqueOnlyWithPackage = false
@@ -134,10 +131,6 @@ func newProtoTypeInfo(targetFileName string,
 
 func (p *protoTypeInfo) GetTargetFileName() string {
 	return p.targetFileName
-}
-
-func (p *protoTypeInfo) GenerateAtTopLevel() bool {
-	return p.jsonSchemaTopLevel
 }
 
 func (p *protoTypeInfo) GetProtoTypeName() string {

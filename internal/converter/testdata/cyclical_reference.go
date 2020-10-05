@@ -1,62 +1,56 @@
 package testdata
 
 const (
-	CyclicalReferenceMessageM = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "foo": {
-            "$ref": "samples.cyclicalreference.Foo.json#",
-            "additionalProperties": false
-        }
-    },
-    "additionalProperties": false,
-    "type": "object"
-}`
-
-	CyclicalReferenceMessageFoo = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "name": {
-            "type": "string"
-        },
-        "bar": {
-            "items": {
-                "$ref": "samples.cyclicalreference.Bar.json#"
+	CyclicalReference = `{
+    "components": {
+        "schemas": {
+            "Bar": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "baz": {
+                        "$ref": "#/components/schemas/Baz"
+                    }
+                },
+                "type": "object"
             },
-            "type": "array"
+            "Baz": {
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "foo": {
+                        "$ref": "#/components/schemas/Foo"
+                    }
+                },
+                "type": "object"
+            },
+            "Foo": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "bar": {
+                        "items": {
+                            "$ref": "#/components/schemas/Bar"
+                        },
+                        "type": "array"
+                    }
+                },
+                "type": "object"
+            },
+            "M": {
+                "properties": {
+                    "foo": {
+                        "$ref": "#/components/schemas/Foo"
+                    }
+                },
+                "type": "object"
+            }
         }
     },
-    "additionalProperties": false,
-    "type": "object"
-}`
-
-	CyclicalReferenceMessageBar = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "id": {
-            "type": "integer"
-        },
-        "baz": {
-            "$ref": "samples.cyclicalreference.Baz.json#",
-            "additionalProperties": false
-        }
-    },
-    "additionalProperties": false,
-    "type": "object"
-}`
-
-	CyclicalReferenceMessageBaz = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "enabled": {
-            "type": "boolean"
-        },
-        "foo": {
-            "$ref": "samples.cyclicalreference.Foo.json#",
-            "additionalProperties": false
-        }
-    },
-    "additionalProperties": false,
-    "type": "object"
+    "openapi": "3.0.0",
+    "paths": {}
 }`
 )

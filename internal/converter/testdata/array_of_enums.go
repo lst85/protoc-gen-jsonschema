@@ -1,30 +1,33 @@
 package testdata
 
 const ArrayOfEnums = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "description": {
-            "type": "string"
-        },
-        "stuff": {
-            "items": {
-                "$ref": "#/definitions/ArrayOfEnums.inline"
+    "components": {
+        "schemas": {
+            "ArrayOfEnums": {
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "stuff": {
+                        "items": {
+                            "$ref": "#/components/schemas/ArrayOfEnums.inline"
+                        },
+                        "type": "array"
+                    }
+                },
+                "type": "object"
             },
-            "type": "array"
+            "ArrayOfEnums.inline": {
+                "enum": [
+                    "FOO",
+                    "BAR",
+                    "FIZZ",
+                    "BUZZ"
+                ],
+                "type": "string"
+            }
         }
     },
-    "additionalProperties": false,
-    "type": "object",
-    "definitions": {
-        "ArrayOfEnums.inline": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "enum": [
-                "FOO",
-                "BAR",
-                "FIZZ",
-                "BUZZ"
-            ],
-            "type": "string"
-        }
-    }
+    "openapi": "3.0.0",
+    "paths": {}
 }`

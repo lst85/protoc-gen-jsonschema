@@ -33,22 +33,22 @@ samples:
 	@echo "Generating sample JSON-Schemas ..."
 	@rm -f jsonschemas/*
 	@mkdir -p jsonschemas
-	$(call build_sample,AdditionalProperties.proto,open_api$(comma)out_file=samples.AdditionalProperties.json$(comma)allow_additional_properties)
-	$(call build_sample,ArrayOfEnums.proto,)
-	$(call build_sample,ArrayOfMessages.proto,)
-	$(call build_sample,ArrayOfObjects.proto,allow_null_values)
-	$(call build_sample,ArrayOfPrimitives.proto,allow_null_values)
-	$(call build_sample,CyclicalReference.proto,)
-	$(call build_sample,Enumception.proto,allow_additional_properties)
-	$(call build_sample,EnumNumericValues.proto,allow_numeric_enum_values)
-	$(call build_sample,Maps.proto,)
-	$(call build_sample,MessageWithComments.proto,)
-	$(call build_sample,NestedObject.proto,disallow_bigints_as_strings)
-	$(call build_sample,NoPackage.proto,)
-	$(call build_sample,OpenApi.proto,open_api$(comma)out_file=openapi.json$(comma)open_api_template=${proto_path}/openapi.json)
-	$(call build_sample,SelfReference.proto,disallow_bigints_as_strings)
-	$(call build_sample,SeveralEnums.proto,disallow_bigints_as_strings)
-	$(call build_sample,SeveralMessages.proto,)
+	$(call build_sample,AdditionalProperties.proto,out_file=samples.AdditionalProperties.json$(comma)allow_additional_properties)
+	$(call build_sample,ArrayOfEnums.proto,out_file=samples.ArrayOfEnums.json)
+	$(call build_sample,ArrayOfMessages.proto,out_file=samples.ArrayOfMessages.json)
+	$(call build_sample,ArrayOfObjects.proto,out_file=samples.ArrayOfObjects.json$(comma)allow_null_values)
+	$(call build_sample,ArrayOfPrimitives.proto,out_file=samples.ArrayOfPrimitives.json$(comma)allow_null_values)
+	$(call build_sample,CyclicalReference.proto,out_file=samples.CyclicalReference.json)
+	$(call build_sample,Enumception.proto,out_file=samples.Enumception.json$(comma)allow_additional_properties)
+	$(call build_sample,EnumNumericValues.proto,out_file=samples.EnumNumericValues.json$(comma)allow_numeric_enum_values)
+	$(call build_sample,Maps.proto,out_file=samples.Maps.json)
+	$(call build_sample,MessageWithComments.proto,out_file=samples.MessageWithComments.json)
+	$(call build_sample,NestedObject.proto,out_file=samples.NestedObject.json$(comma)disallow_bigints_as_strings)
+	$(call build_sample,NoPackage.proto,out_file=samples.NoPackage.json)
+	$(call build_sample,OpenApi.proto,out_file=openapi.json$(comma)open_api_template=${proto_path}/openapi.json)
+	$(call build_sample,SelfReference.proto,out_file=samples.SelfReference.json$(comma)disallow_bigints_as_strings)
+	$(call build_sample,SeveralEnums.proto,out_file=samples.SeveralEnums.json$(comma)disallow_bigints_as_strings)
+	$(call build_sample,SeveralMessages.proto,out_file=samples.SeveralMessages.json)
 
 test:
 	@go test ./... -cover -v
