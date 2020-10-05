@@ -227,10 +227,17 @@ func configureSampleProtos() {
 // Load the specified .proto files into a FileDescriptorSet. Any errors in loading/parsing will
 // immediately fail the test.
 func mustReadProtoFiles(t *testing.T, includePath string, filenames ...string) *descriptor.FileDescriptorSet {
-	protocBinary, err := exec.LookPath("protoc")
-	if err != nil {
-		t.Fatalf("Can't find 'protoc' binary in $PATH: %s", err.Error())
+	var protocBinary string = "../../bin/protoc"
+
+	exists := fileExists(protocBinary)
+	if !exists {
+		var err error
+		protocBinary, err = exec.LookPath("protoc")
+		if err != nil {
+			t.Fatalf("Can't find 'protoc' binary in $PATH: %s", err.Error())
+		}
 	}
+	t.Logf("Using protoc from %s", protocBinary)
 
 	// Use protoc to output descriptor info for the specified .proto files.
 	var args []string
@@ -244,7 +251,7 @@ func mustReadProtoFiles(t *testing.T, includePath string, filenames ...string) *
 	stderrBuf := bytes.Buffer{}
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		t.Fatalf("failed to load descriptor set (%s): %s: %s",
 			strings.Join(cmd.Args, " "), err.Error(), stderrBuf.String())
@@ -255,4 +262,14 @@ func mustReadProtoFiles(t *testing.T, includePath string, filenames ...string) *
 		t.Fatalf("failed to parse protoc output as FileDescriptorSet: %s", err.Error())
 	}
 	return fds
+}
+
+// fileExists checks if a file exists and is not a directory before we
+// try using it to prevent further errors.
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
