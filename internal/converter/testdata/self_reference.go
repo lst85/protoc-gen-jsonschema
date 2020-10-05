@@ -1,18 +1,24 @@
 package testdata
 
 const SelfReference = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "name": {
-            "type": "string"
-        },
-        "bar": {
-            "items": {
-                "$ref": "#"
-            },
-            "type": "array"
+    "components": {
+        "schemas": {
+            "SelfReference": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "bar": {
+                        "items": {
+                            "$ref": "#/components/schemas/SelfReference"
+                        },
+                        "type": "array"
+                    }
+                },
+                "type": "object"
+            }
         }
     },
-    "additionalProperties": false,
-    "type": "object"
+    "openapi": "3.0.0",
+    "paths": {}
 }`

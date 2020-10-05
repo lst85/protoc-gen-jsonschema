@@ -2,13 +2,11 @@ package converter
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 
-	"github.com/alecthomas/jsonschema"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
@@ -28,14 +26,7 @@ type Converter struct {
 	DisallowBigIntsAsStrings bool
 	// Allow both enum names and integer values.
 	AllowNumericEnumValues bool
-	// Generate an OpenAPI v.3 file instead of JSON Schema file(s).
-	// All ProtoBuf types (messages, enums, etc.) will be converted to their JSON Schema equivalent and added to the
-	// components/schemas section of the OpenAPI document.
-	// NOTE: The generator currently ignores gRPC service definitions. The paths section of the generated OpenAPI
-	// document will be emtpy.
-	GenerateOpenApi bool
 	// Path to an OpenAPI file that will be merged with the generated schemas.
-	// This parameter has only an effect when the parameter open_api is set.
 	OpenApiFile string
 	// Create a single file instead of multiple files.
 	// When JSON Schema mode is enabled (parameter open_api is not set) a single JSON Schema will be generated with the
@@ -103,8 +94,6 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 			} else {
 				c.SingleOutputFile = paramSplit[1]
 			}
-		case parameter == "open_api":
-			c.GenerateOpenApi = true
 		case strings.HasPrefix(parameter, "open_api_template"):
 			paramSplit := strings.Split(parameter, "=")
 			if len(paramSplit) != 2 || len(paramSplit[1]) == 0 {
@@ -122,7 +111,7 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 
 	// If an OpenAPI document should be generated single file mode is always enabled. The default filename is
 	// openapi.json.
-	if c.GenerateOpenApi && c.SingleOutputFile == "" {
+	if c.SingleOutputFile == "" {
 		c.SingleOutputFile = "openapi.json"
 	}
 }
@@ -159,65 +148,27 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 
 	c.logger.WithField("file", jsonSchemaFileName).Debug("Creating JSON schema file ...")
 
-	definitions := jsonschema.Definitions{}
-	jsonSchema := &jsonschema.Schema{
-		Definitions: definitions,
-	}
-
 	for _, typeInfo := range typeInfos {
-		if typeInfo.GenerateAtTopLevel() {
-			if jsonSchema.Type != nil {
-				return nil, errors.New("Error while creating JSON Schema " + jsonSchemaFileName +
-					". JSON schema can only have one root type.")
-			}
-
-			jsonType, err := c.convertProtoType(typeInfo)
-			if err != nil {
-				return nil, err
-			}
-			jsonSchema.Type = jsonType
-		} else {
-			jsonType, err := c.convertProtoType(typeInfo)
-			if err != nil {
-				return nil, err
-			}
-
-			typeId := typeInfo.GetProtoFQTypeName()
-			if c.GenerateOpenApi {
-				if openApi.Components.Schemas == nil {
-					openApi.Components.Schemas = Schemas{}
-				}
-				openApi.Components.Schemas[typeId] = jsonType
-			} else {
-				jsonSchema.Definitions[typeId] = jsonType
-			}
+		jsonType, err := c.convertProtoType(typeInfo)
+		if err != nil {
+			return nil, err
 		}
+
+		typeId := typeInfo.GetProtoFQTypeName()
+		if openApi.Components.Schemas == nil {
+			openApi.Components.Schemas = Schemas{}
+		}
+		openApi.Components.Schemas[typeId] = jsonType
 	}
 
 	// Marshal the result into a JSON-Schema or OpenAPI document:
 	var jsonSchemaJSON []byte = nil
-	if c.GenerateOpenApi {
-		jsonBytes, err := json.MarshalIndent(openApi, "", "    ")
-		if err != nil {
-			c.logger.WithError(err).Error("Failed to encode OpenApi document")
-			return nil, err
-		}
-		jsonSchemaJSON = jsonBytes
-	} else {
-		// JSON schema must have a top level type. When single file mode is enabled all types are generated in the
-		// definitions section and thus we add an artifical top-level type to the schema.
-		if jsonSchema.Type == nil {
-			jsonSchema.Type = &jsonschema.Type{
-				Type: "nil",
-			}
-		}
-		jsonBytes, err := json.MarshalIndent(jsonSchema, "", "    ")
-		if err != nil {
-			c.logger.WithError(err).Error("Failed to encode jsonSchema")
-			return nil, err
-		}
-		jsonSchemaJSON = jsonBytes
+	jsonBytes, err := json.MarshalIndent(openApi, "", "    ")
+	if err != nil {
+		c.logger.WithError(err).Error("Failed to encode OpenApi document")
+		return nil, err
 	}
+	jsonSchemaJSON = jsonBytes
 
 	// Add a response:
 	resFile := &plugin.CodeGeneratorResponse_File{
@@ -257,14 +208,14 @@ func (c *Converter) calcGeneratorPlan(req *plugin.CodeGeneratorRequest) error {
 	for _, file := range req.GetProtoFile() {
 		packageName := file.GetPackage()
 		for _, enum := range file.GetEnumType() {
-			err := c.addToGeneratorPlan(c.getJsonFileName(packageName, enum.GetName()), packageName, nil,
+			err := c.addToGeneratorPlan(c.SingleOutputFile, packageName, nil,
 				nil, []*descriptor.EnumDescriptorProto{enum})
 			if err != nil {
 				return err
 			}
 		}
 		for _, msg := range file.GetMessageType() {
-			err := c.addToGeneratorPlan(c.getJsonFileName(packageName, msg.GetName()), packageName, nil,
+			err := c.addToGeneratorPlan(c.SingleOutputFile, packageName, nil,
 				[]*descriptor.DescriptorProto{msg}, nil)
 			if err != nil {
 				return err
@@ -283,11 +234,9 @@ func (c *Converter) addToGeneratorPlan(
 	childMessages []*descriptor.DescriptorProto,
 	childEnums []*descriptor.EnumDescriptorProto) error {
 
-	jsonTopLevel := parentTypeInfo == nil && c.SingleOutputFile == ""
-
 	if len(childEnums) > 0 {
 		for _, childEnum := range childEnums {
-			typeInfo := NewProtoTypeInfoForEnum(jsonFileName, jsonTopLevel, protoPackage, parentTypeInfo, childEnum)
+			typeInfo := NewProtoTypeInfoForEnum(jsonFileName, protoPackage, parentTypeInfo, childEnum)
 			err := c.generatorPlan.Put(typeInfo)
 			if err != nil {
 				return err
@@ -297,7 +246,7 @@ func (c *Converter) addToGeneratorPlan(
 
 	if len(childMessages) > 0 {
 		for _, childMsg := range childMessages {
-			typeInfo := NewProtoTypeInfoForMsg(jsonFileName, jsonTopLevel, protoPackage, parentTypeInfo, childMsg)
+			typeInfo := NewProtoTypeInfoForMsg(jsonFileName, protoPackage, parentTypeInfo, childMsg)
 			err := c.generatorPlan.Put(typeInfo)
 			if err != nil {
 				return err
@@ -312,16 +261,4 @@ func (c *Converter) addToGeneratorPlan(
 		}
 	}
 	return nil
-}
-
-func (c *Converter) getJsonFileName(packageName string, topLevelTypeName string) string {
-	if c.SingleOutputFile != "" {
-		return c.SingleOutputFile
-	}
-
-	res := packageName
-	if packageName != "" {
-		res += "."
-	}
-	return res + topLevelTypeName + ".json"
 }

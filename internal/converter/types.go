@@ -301,17 +301,10 @@ func formatDescription(sl *descriptor.SourceCodeInfo_Location) string {
 //		OpenAPI: no additional properties allowed
 // 2. Some OpenAPI implementations do not allow boolean values.
 func (c *Converter) getAdditionalPropertiesValue() []byte {
-	if c.GenerateOpenApi {
-		if c.AllowAdditionalProperties {
-			return []byte("{}")
-		}
-		return nil
-	}
-
 	if c.AllowAdditionalProperties {
-		return []byte("true")
+		return []byte("{}")
 	}
-	return []byte("false")
+	return nil
 }
 
 func (c *Converter) setJsonTypeForEnum(jsonSchemaType *jsonschema.Type) {
@@ -338,21 +331,12 @@ func (c *Converter) getJsonRefValue(contextType *protoTypeInfo, targetType *prot
 		ref += targetType.GetTargetFileName()
 	}
 	ref += "#"
-	if !targetType.GenerateAtTopLevel() {
-		if c.GenerateOpenApi {
-			ref += "/components/schemas/"
-		} else {
-			ref += "/definitions/"
-		}
-		ref += targetType.GetProtoFQTypeName()
-	}
+	ref += "/components/schemas/"
+	ref += targetType.GetProtoFQTypeName()
 	return ref
 }
 
 func (c *Converter) createNewJsonType() *jsonschema.Type {
 	t := jsonschema.Type{}
-	if !c.GenerateOpenApi {
-		t.Version = jsonschema.Version
-	}
 	return &t
 }

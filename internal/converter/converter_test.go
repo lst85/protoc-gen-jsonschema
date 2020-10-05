@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chrusty/protoc-gen-jsonschema/internal/converter/testdata"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"github.com/lst85/protoc-gen-openapi/internal/converter/testdata"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +26,6 @@ type sampleProto struct {
 	AllowAdditionalProperties bool
 	AllowNumericEnumValues    bool
 	DisallowBigIntsAsStrings  bool
-	GenerateOpenApi           bool
 	OpenApiFile               string
 	ExpectedJSONSchema        []string
 	FilesToGenerate           []string
@@ -71,10 +70,7 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 	protoConverter.AllowNumericEnumValues = sampleProto.AllowNumericEnumValues
 	protoConverter.AllowAdditionalProperties = sampleProto.AllowAdditionalProperties
 	protoConverter.DisallowBigIntsAsStrings = sampleProto.DisallowBigIntsAsStrings
-	protoConverter.GenerateOpenApi = sampleProto.GenerateOpenApi
-	if protoConverter.GenerateOpenApi {
-		protoConverter.SingleOutputFile = sampleProto.ProtoFileName + "_openapi.json"
-	}
+	protoConverter.SingleOutputFile = sampleProto.ProtoFileName + "_openapi.json"
 	protoConverter.OpenApiFile = sampleProto.OpenApiFile
 	protoConverter.UseProtoFieldNames = sampleProto.UseProtoAndJSONFieldNames
 
@@ -107,7 +103,6 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 func configureSampleProtos() {
 	// AdditionalProperties:
 	sampleProtos["AdditionalProperties"] = sampleProto{
-		GenerateOpenApi:           true,
 		AllowAdditionalProperties: true,
 		ExpectedJSONSchema:        []string{testdata.AdditionalProperties},
 		FilesToGenerate:           []string{"AdditionalProperties.proto"},
@@ -146,16 +141,15 @@ func configureSampleProtos() {
 
 	// Messages that depend on one another so as to form a cycle
 	sampleProtos["CyclicalReference"] = sampleProto{
-		ExpectedJSONSchema: []string{testdata.CyclicalReferenceMessageBar, testdata.CyclicalReferenceMessageBaz,
-			testdata.CyclicalReferenceMessageFoo, testdata.CyclicalReferenceMessageM},
-		FilesToGenerate: []string{"CyclicalReference.proto"},
-		ProtoFileName:   "CyclicalReference.proto",
+		ExpectedJSONSchema: []string{testdata.CyclicalReference},
+		FilesToGenerate:    []string{"CyclicalReference.proto"},
+		ProtoFileName:      "CyclicalReference.proto",
 	}
 
 	// EnumCeption:
 	sampleProtos["Enumception"] = sampleProto{
 		AllowAdditionalProperties: true,
-		ExpectedJSONSchema:        []string{testdata.Enumception, testdata.EnumceptionImportedEnum, testdata.EnumceptionImportedMessage},
+		ExpectedJSONSchema:        []string{testdata.Enumception},
 		FilesToGenerate:           []string{"Enumception.proto", "_ImportedMessage.proto", "_ImportedEnum.proto"},
 		ProtoFileName:             "Enumception.proto",
 	}
@@ -163,10 +157,9 @@ func configureSampleProtos() {
 	// Tests the DisallowNumericEnumValues parameter:
 	sampleProtos["EnumNumericValues"] = sampleProto{
 		AllowNumericEnumValues: true,
-		ExpectedJSONSchema: []string{testdata.EnumNumericValuesMsg, testdata.EnumNumericValuesMsg2,
-			testdata.EnumNumericValuesTopLevelEnum},
-		FilesToGenerate: []string{"EnumNumericValues.proto"},
-		ProtoFileName:   "EnumNumericValues.proto",
+		ExpectedJSONSchema:     []string{testdata.EnumNumericValues},
+		FilesToGenerate:        []string{"EnumNumericValues.proto"},
+		ProtoFileName:          "EnumNumericValues.proto",
 	}
 
 	// Maps:
@@ -194,14 +187,13 @@ func configureSampleProtos() {
 	// NoPackage:
 	sampleProtos["NoPackage"] = sampleProto{
 		DisallowBigIntsAsStrings: true,
-		ExpectedJSONSchema:       []string{testdata.NoPackageMsg, testdata.NoPackageOtherMsg},
+		ExpectedJSONSchema:       []string{testdata.NoPackage},
 		FilesToGenerate:          []string{"NoPackage.proto"},
 		ProtoFileName:            "NoPackage.proto",
 	}
 
 	// OpenApi:
 	sampleProtos["OpenApi"] = sampleProto{
-		GenerateOpenApi:    true,
 		OpenApiFile:        fmt.Sprintf("%v/openapi.json", sampleProtoDirectory),
 		ExpectedJSONSchema: []string{testdata.OpenApi},
 		FilesToGenerate:    []string{"OpenApi.proto"},
@@ -219,14 +211,14 @@ func configureSampleProtos() {
 	// SeveralEnums:
 	sampleProtos["SeveralEnums"] = sampleProto{
 		DisallowBigIntsAsStrings: true,
-		ExpectedJSONSchema:       []string{testdata.SeveralEnumsFirstEnum, testdata.SeveralEnumsSecondEnum},
+		ExpectedJSONSchema:       []string{testdata.SeveralEnums},
 		FilesToGenerate:          []string{"SeveralEnums.proto"},
 		ProtoFileName:            "SeveralEnums.proto",
 	}
 
 	// SeveralMessages:
 	sampleProtos["SeveralMessages"] = sampleProto{
-		ExpectedJSONSchema: []string{testdata.FirstMessage, testdata.SecondMessage},
+		ExpectedJSONSchema: []string{testdata.SeveralMessages},
 		FilesToGenerate:    []string{"SeveralMessages.proto"},
 		ProtoFileName:      "SeveralMessages.proto",
 	}

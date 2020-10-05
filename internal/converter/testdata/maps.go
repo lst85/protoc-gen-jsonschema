@@ -1,95 +1,88 @@
 package testdata
 
 const Maps = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "mapOfStrings": {
-            "additionalProperties": {
+    "components": {
+        "schemas": {
+            "Maps": {
+                "properties": {
+                    "mapOfStrings": {
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "type": "object"
+                    },
+                    "mapOfInts": {
+                        "additionalProperties": {
+                            "type": "integer"
+                        },
+                        "type": "object"
+                    },
+                    "mapOfMessages": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/Maps.PayloadMessage"
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "Maps.MapOfIntsEntry": {
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "Maps.MapOfMessagesEntry": {
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "$ref": "#/components/schemas/Maps.PayloadMessage"
+                    }
+                },
+                "type": "object"
+            },
+            "Maps.MapOfStringsEntry": {
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "Maps.PayloadMessage": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "topology": {
+                        "$ref": "#/components/schemas/Maps.PayloadMessage.Topology"
+                    }
+                },
+                "type": "object"
+            },
+            "Maps.PayloadMessage.Topology": {
+                "enum": [
+                    "FLAT",
+                    "NESTED_OBJECT",
+                    "NESTED_MESSAGE",
+                    "ARRAY_OF_TYPE",
+                    "ARRAY_OF_OBJECT",
+                    "ARRAY_OF_MESSAGE"
+                ],
                 "type": "string"
-            },
-            "type": "object"
-        },
-        "mapOfInts": {
-            "additionalProperties": {
-                "type": "integer"
-            },
-            "type": "object"
-        },
-        "mapOfMessages": {
-            "additionalProperties": {
-                "$ref": "#/definitions/Maps.PayloadMessage",
-                "additionalProperties": false
-            },
-            "type": "object"
+            }
         }
     },
-    "additionalProperties": false,
-    "type": "object",
-    "definitions": {
-        "Maps.MapOfIntsEntry": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "integer"
-                }
-            },
-            "additionalProperties": false,
-            "type": "object"
-        },
-        "Maps.MapOfMessagesEntry": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "value": {
-                    "$ref": "#/definitions/Maps.PayloadMessage",
-                    "additionalProperties": false
-                }
-            },
-            "additionalProperties": false,
-            "type": "object"
-        },
-        "Maps.MapOfStringsEntry": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            },
-            "additionalProperties": false,
-            "type": "object"
-        },
-        "Maps.PayloadMessage": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "topology": {
-                    "$ref": "#/definitions/Maps.PayloadMessage.Topology"
-                }
-            },
-            "additionalProperties": false,
-            "type": "object"
-        },
-        "Maps.PayloadMessage.Topology": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "enum": [
-                "FLAT",
-                "NESTED_OBJECT",
-                "NESTED_MESSAGE",
-                "ARRAY_OF_TYPE",
-                "ARRAY_OF_OBJECT",
-                "ARRAY_OF_MESSAGE"
-            ],
-            "type": "string"
-        }
-    }
+    "openapi": "3.0.0",
+    "paths": {}
 }`

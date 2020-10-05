@@ -1,107 +1,104 @@
 package testdata
 
 const Enumception = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "name": {
-            "type": "string"
-        },
-        "timestamp": {
-            "type": "string"
-        },
-        "id": {
-            "type": "integer"
-        },
-        "rating": {
-            "type": "number"
-        },
-        "complete": {
-            "type": "boolean"
-        },
-        "failureMode": {
-            "$ref": "#/definitions/Enumception.FailureModes"
-        },
-        "payload": {
-            "$ref": "samples.enumception.ImportedMessage.json#",
-            "additionalProperties": true
-        },
-        "payloads": {
-            "items": {
-                "$ref": "samples.enumception.ImportedMessage.json#"
+    "components": {
+        "schemas": {
+            "Enumception": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "rating": {
+                        "type": "number"
+                    },
+                    "complete": {
+                        "type": "boolean"
+                    },
+                    "failureMode": {
+                        "$ref": "#/components/schemas/Enumception.FailureModes"
+                    },
+                    "payload": {
+                        "$ref": "#/components/schemas/ImportedMessage",
+                        "additionalProperties": {}
+                    },
+                    "payloads": {
+                        "items": {
+                            "$ref": "#/components/schemas/ImportedMessage"
+                        },
+                        "type": "array"
+                    },
+                    "importedEnum": {
+                        "$ref": "#/components/schemas/ImportedEnum"
+                    },
+                    "importedEnums": {
+                        "items": {
+                            "$ref": "#/components/schemas/ImportedEnum"
+                        },
+                        "type": "array"
+                    }
+                },
+                "additionalProperties": {},
+                "type": "object"
             },
-            "type": "array"
-        },
-        "importedEnum": {
-            "$ref": "samples.enumception.ImportedEnum.json#"
-        },
-        "importedEnums": {
-            "items": {
-                "$ref": "samples.enumception.ImportedEnum.json#"
+            "Enumception.FailureModes": {
+                "enum": [
+                    "RECURSION_ERROR",
+                    "SYNTAX_ERROR"
+                ],
+                "type": "string"
             },
-            "type": "array"
+            "ImportedEnum": {
+                "enum": [
+                    "VALUE_0",
+                    "VALUE_1",
+                    "VALUE_2",
+                    "VALUE_3"
+                ],
+                "type": "string"
+            },
+            "ImportedMessage": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "rating": {
+                        "type": "number"
+                    },
+                    "complete": {
+                        "type": "boolean"
+                    },
+                    "topology": {
+                        "$ref": "#/components/schemas/ImportedMessage.Topology"
+                    }
+                },
+                "additionalProperties": {},
+                "type": "object"
+            },
+            "ImportedMessage.Topology": {
+                "enum": [
+                    "FLAT",
+                    "NESTED_OBJECT",
+                    "NESTED_MESSAGE",
+                    "ARRAY_OF_TYPE",
+                    "ARRAY_OF_OBJECT",
+                    "ARRAY_OF_MESSAGE"
+                ],
+                "type": "string"
+            }
         }
     },
-    "additionalProperties": true,
-    "type": "object",
-    "definitions": {
-        "Enumception.FailureModes": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "enum": [
-                "RECURSION_ERROR",
-                "SYNTAX_ERROR"
-            ],
-            "type": "string"
-        }
-    }
-}`
-
-const EnumceptionImportedMessage = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "name": {
-            "type": "string"
-        },
-        "timestamp": {
-            "type": "string"
-        },
-        "id": {
-            "type": "integer"
-        },
-        "rating": {
-            "type": "number"
-        },
-        "complete": {
-            "type": "boolean"
-        },
-        "topology": {
-            "$ref": "#/definitions/ImportedMessage.Topology"
-        }
-    },
-    "additionalProperties": true,
-    "type": "object",
-    "definitions": {
-        "ImportedMessage.Topology": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "enum": [
-                "FLAT",
-                "NESTED_OBJECT",
-                "NESTED_MESSAGE",
-                "ARRAY_OF_TYPE",
-                "ARRAY_OF_OBJECT",
-                "ARRAY_OF_MESSAGE"
-            ],
-            "type": "string"
-        }
-    }
-}`
-
-const EnumceptionImportedEnum = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "enum": [
-        "VALUE_0",
-        "VALUE_1",
-        "VALUE_2",
-        "VALUE_3"
-    ],
-    "type": "string"
+    "openapi": "3.0.0",
+    "paths": {}
 }`

@@ -1,57 +1,58 @@
 package testdata
 
 const ArrayOfMessages = `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "properties": {
-        "description": {
-            "type": "string"
-        },
-        "payload": {
-            "items": {
-                "$ref": "#/definitions/ArrayOfMessages.PayloadMessage"
+    "components": {
+        "schemas": {
+            "ArrayOfMessages": {
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "payload": {
+                        "items": {
+                            "$ref": "#/components/schemas/ArrayOfMessages.PayloadMessage"
+                        },
+                        "type": "array"
+                    }
+                },
+                "type": "object"
             },
-            "type": "array"
+            "ArrayOfMessages.PayloadMessage": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "rating": {
+                        "type": "number"
+                    },
+                    "complete": {
+                        "type": "boolean"
+                    },
+                    "topology": {
+                        "$ref": "#/components/schemas/ArrayOfMessages.PayloadMessage.Topology"
+                    }
+                },
+                "type": "object"
+            },
+            "ArrayOfMessages.PayloadMessage.Topology": {
+                "enum": [
+                    "FLAT",
+                    "NESTED_OBJECT",
+                    "NESTED_MESSAGE",
+                    "ARRAY_OF_TYPE",
+                    "ARRAY_OF_OBJECT",
+                    "ARRAY_OF_MESSAGE"
+                ],
+                "type": "string"
+            }
         }
     },
-    "additionalProperties": false,
-    "type": "object",
-    "definitions": {
-        "ArrayOfMessages.PayloadMessage": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "timestamp": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "rating": {
-                    "type": "number"
-                },
-                "complete": {
-                    "type": "boolean"
-                },
-                "topology": {
-                    "$ref": "#/definitions/ArrayOfMessages.PayloadMessage.Topology"
-                }
-            },
-            "additionalProperties": false,
-            "type": "object"
-        },
-        "ArrayOfMessages.PayloadMessage.Topology": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "enum": [
-                "FLAT",
-                "NESTED_OBJECT",
-                "NESTED_MESSAGE",
-                "ARRAY_OF_TYPE",
-                "ARRAY_OF_OBJECT",
-                "ARRAY_OF_MESSAGE"
-            ],
-            "type": "string"
-        }
-    }
+    "openapi": "3.0.0",
+    "paths": {}
 }`
