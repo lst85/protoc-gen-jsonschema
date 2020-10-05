@@ -1,4 +1,4 @@
-module github.com/chrusty/protoc-gen-jsonschema
+module github.com/lst85/protoc-gen-openapi
 
 go 1.14
 

@@ -3,30 +3,30 @@ default: build-default
 protoc-gen-%:
 	@echo "Generating binary ($@) for os $(GOOS) and arch $(GOARCH) ..."
 	@mkdir -p bin
-	@GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/$@ cmd/protoc-gen-jsonschema/main.go
+	@GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o bin/$@ cmd/protoc-gen-openapi/main.go
 
 build-all: build-linux build-windows build-darwin build-default
 
 build-linux: GOOS = linux
 build-linux: GOARCH = amd64
-build-linux: protoc-gen-jsonschema.linux-amd64
+build-linux: protoc-gen-openapi.linux-amd64
 
 build-windows: GOOS = windows
 build-windows: GOARCH = amd64
-build-windows: protoc-gen-jsonschema.windows-amd64
+build-windows: protoc-gen-openapi.windows-amd64
 
 build-darwin: GOOS = darwin
 build-darwin: GOARCH = amd64
-build-darwin: protoc-gen-jsonschema.darwin-amd64
+build-darwin: protoc-gen-openapi.darwin-amd64
 
-build-default: protoc-gen-jsonschema
+build-default: protoc-gen-openapi
 
 proto_path ?= "internal/converter/testdata/proto"
 comma:= ,
 
 define build_sample
 	@echo "Processing $(1) with parameters: $(2)"
-	@PATH=./bin:$$PATH; protoc --jsonschema_out=$(2):jsonschemas --proto_path=$(proto_path) $(proto_path)/$(1) || echo "No messages found ($(1))"
+	@PATH=./bin:$$PATH; protoc --openapi_out=$(2):jsonschemas --proto_path=$(proto_path) $(proto_path)/$(1) || echo "No messages found ($(1))"
 endef
 
 samples:

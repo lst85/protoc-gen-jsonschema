@@ -1,4 +1,4 @@
-![Go](https://github.com/lst85/protoc-gen-jsonschema/workflows/Go/badge.svg?branch=master)
+![Go](https://github.com/lst85/protoc-gen-openapi/workflows/Go/badge.svg?branch=master)
 
 Protobuf to OpenAPI 3.0 compiler
 ================================================
@@ -7,14 +7,14 @@ This is a protoc plugin that takes protocol buffers definitions and converts the
 All ProtoBuf types (messages, enums, etc.) will be converted to their JSON Schema equivalent and added to the components/schemas section of the OpenAPI document. 
 *The generator currently ignores gRPC service definitions.* The paths section of the generated OpenAPI document will be emtpy.
 
-Forked from [chrusty/protoc-gen-jsonschema](https://github.com/chrusty/protoc-gen-jsonschema).
+Forked from [chrusty/protoc-gen-openapi](https://github.com/chrusty/protoc-gen-openapi).
 
 Installation
 ------------
 
 First install Go and [protoc](https://github.com/protocolbuffers/protobuf), then install the plugin with:
 
-`GO111MODULE=on go get github.com/lst85/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema && go install github.com/lst85/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema`
+`GO111MODULE=on go get github.com/lst85/protoc-gen-openapi/cmd/protoc-gen-openapi && go install github.com/lst85/protoc-gen-openapi/cmd/protoc-gen-openapi`
 
 Links
 -----
@@ -24,18 +24,18 @@ Links
 Usage
 -----
 
-Simply invoke `protoc` with the `--jsonschema_out` command-line parameter:
+Simply invoke `protoc` with the `--openapi_out` command-line parameter:
 
 ```
-protoc --jsonschema_out="<OUT_DIR>" input.proto
-protoc --jsonschema_out="<OPTIONS>:<OUT_DIR>" input.proto
+protoc --openapi_out="<OUT_DIR>" input.proto
+protoc --openapi_out="<OPTIONS>:<OUT_DIR>" input.proto
 ```
 
 Where `<OPTIONS>` is a comma-seperated list of `key=value,key2` options (which are listed in detail below). 
 
 For example:
 
-`protoc --jsonschema_out="open_api_template=template.json:my_schemas/" file.proto`
+`protoc --openapi_out="open_api_template=template.json:my_schemas/" file.proto`
 would produce an OpenAPI document for `file.proto` inside the `my_schemas/` directory using the template from `template.json`.
 
 Options

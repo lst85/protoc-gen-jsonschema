@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chrusty/protoc-gen-jsonschema/internal/converter/testdata"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"github.com/lst85/protoc-gen-openapi/internal/converter/testdata"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
