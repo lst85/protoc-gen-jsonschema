@@ -50,5 +50,12 @@ samples:
 	$(call build_sample,SeveralEnums.proto,out_file=samples.SeveralEnums.json$(comma)disallow_bigints_as_strings)
 	$(call build_sample,SeveralMessages.proto,out_file=samples.SeveralMessages.json)
 
+protoc_zip := protoc-3.13.0-linux-x86_64.zip
+download-protoc:
+	@echo "Downloading $(protoc_zip)"
+	@curl -OL -# "https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/$(protoc_zip)"
+	@unzip -o "$(protoc_zip)" bin/protoc
+	@rm -f "$(protoc_zip)"
+
 test:
 	@go test ./... -cover -v
