@@ -33,7 +33,7 @@ type Converter struct {
 	// given filename.
 	// When OpenAPI mode is enabled (parameter open_api is set) this parameter is implicitly enabled and the
 	// default filename is "openapi.json".
-	SingleOutputFile string
+	outputFile string
 	// If the parameter is set the field names from the ProtoBuf definition are used in the JSON Schema.
 	// If the parameter is not set message field names are mapped to lowerCamelCase and become JSON object keys.
 	UseProtoFieldNames bool
@@ -92,7 +92,7 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 				c.logger.WithField("parameter", parameter).
 					Warn("Invalid parameter. Expecting out_file=<filename>")
 			} else {
-				c.SingleOutputFile = paramSplit[1]
+				c.outputFile = paramSplit[1]
 			}
 		case strings.HasPrefix(parameter, "open_api_template"):
 			paramSplit := strings.Split(parameter, "=")
@@ -111,8 +111,8 @@ func (c *Converter) parseGeneratorParameters(parameters string) {
 
 	// If an OpenAPI document should be generated single file mode is always enabled. The default filename is
 	// openapi.json.
-	if c.SingleOutputFile == "" {
-		c.SingleOutputFile = "openapi.json"
+	if c.outputFile == "" {
+		c.outputFile = "openapi.json"
 	}
 }
 
@@ -124,29 +124,26 @@ func (c *Converter) convert(req *plugin.CodeGeneratorRequest) (*plugin.CodeGener
 	if err != nil {
 		return nil, err
 	}
-
-	for _, fName := range c.generatorPlan.GetAllTargetFilenames() {
-		converted, err := c.convertFile(fName)
-		if err != nil {
-			c.logger.WithField("file", fName).WithField("error", err).
-				Error("Failed to create JSON schema file")
-			res.Error = proto.String(fmt.Sprintf("Failed to create %s: %v", fName, err))
-			return res, err
-		}
-		res.File = append(res.File, converted)
+	converted, err := c.convertFile(c.outputFile)
+	if err != nil {
+		c.logger.WithField("file", c.outputFile).WithField("error", err).
+			Error("Failed to create JSON schema file")
+		res.Error = proto.String(fmt.Sprintf("Failed to create %s: %v", c.outputFile, err))
+		return res, err
 	}
+	res.File = append(res.File, converted)
 	return res, nil
 }
 
-func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGeneratorResponse_File, error) {
-	typeInfos := c.generatorPlan.GetAllForTargetFilename(jsonSchemaFileName)
+func (c *Converter) convertFile(openapiFileName string) (*plugin.CodeGeneratorResponse_File, error) {
+	typeInfos := c.generatorPlan.GetAll()
 
 	openApi, err := c.createOpenApiDocument()
 	if err != nil {
 		return nil, err
 	}
 
-	c.logger.WithField("file", jsonSchemaFileName).Debug("Creating JSON schema file ...")
+	c.logger.WithField("file", openapiFileName).Debug("Creating OpenAPI file ...")
 
 	for _, typeInfo := range typeInfos {
 		jsonType, err := c.convertProtoType(typeInfo)
@@ -172,7 +169,7 @@ func (c *Converter) convertFile(jsonSchemaFileName string) (*plugin.CodeGenerato
 
 	// Add a response:
 	resFile := &plugin.CodeGeneratorResponse_File{
-		Name:    proto.String(jsonSchemaFileName),
+		Name:    proto.String(openapiFileName),
 		Content: proto.String(string(jsonSchemaJSON)),
 	}
 
@@ -208,14 +205,14 @@ func (c *Converter) calcGeneratorPlan(req *plugin.CodeGeneratorRequest) error {
 	for _, file := range req.GetProtoFile() {
 		packageName := file.GetPackage()
 		for _, enum := range file.GetEnumType() {
-			err := c.addToGeneratorPlan(c.SingleOutputFile, packageName, nil,
+			err := c.addToGeneratorPlan(c.outputFile, packageName, nil,
 				nil, []*descriptor.EnumDescriptorProto{enum})
 			if err != nil {
 				return err
 			}
 		}
 		for _, msg := range file.GetMessageType() {
-			err := c.addToGeneratorPlan(c.SingleOutputFile, packageName, nil,
+			err := c.addToGeneratorPlan(c.outputFile, packageName, nil,
 				[]*descriptor.DescriptorProto{msg}, nil)
 			if err != nil {
 				return err

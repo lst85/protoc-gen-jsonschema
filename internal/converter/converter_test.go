@@ -70,7 +70,7 @@ func testConvertSampleProto(t *testing.T, sampleProto sampleProto) {
 	protoConverter.AllowNumericEnumValues = sampleProto.AllowNumericEnumValues
 	protoConverter.AllowAdditionalProperties = sampleProto.AllowAdditionalProperties
 	protoConverter.DisallowBigIntsAsStrings = sampleProto.DisallowBigIntsAsStrings
-	protoConverter.SingleOutputFile = sampleProto.ProtoFileName + "_openapi.json"
+	protoConverter.outputFile = sampleProto.ProtoFileName + "_openapi.json"
 	protoConverter.OpenApiFile = sampleProto.OpenApiFile
 	protoConverter.UseProtoFieldNames = sampleProto.UseProtoAndJSONFieldNames
 

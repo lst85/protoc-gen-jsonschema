@@ -3,13 +3,11 @@ package converter
 import (
 	"fmt"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"sort"
 	"strings"
 )
 
 type generatorPlan struct {
-	targetFileLookup map[string][]*protoTypeInfo
-	typeLookup       map[string]*protoTypeInfo
+	typeLookup map[string]*protoTypeInfo
 }
 
 type protoTypeInfo struct {
@@ -23,15 +21,11 @@ type protoTypeInfo struct {
 
 func NewGeneratorPlan() *generatorPlan {
 	plan := new(generatorPlan)
-	plan.targetFileLookup = make(map[string][]*protoTypeInfo)
 	plan.typeLookup = make(map[string]*protoTypeInfo)
 	return plan
 }
 
 func (g *generatorPlan) Put(tInfo *protoTypeInfo) error {
-	targetFileName := tInfo.GetTargetFileName()
-	g.targetFileLookup[targetFileName] = append(g.targetFileLookup[targetFileName], tInfo)
-
 	// Check if two types exists that have the same name but are located in different packages.
 	// Normally the type name that is used in the OpenAPI schema does not contain the ProtoBuf package.
 	// That makes it easier to read the OpenAPI specification. However, if to types have the same name the package
@@ -52,31 +46,22 @@ func (g *generatorPlan) Put(tInfo *protoTypeInfo) error {
 	return nil
 }
 
-func (g *generatorPlan) GetAllForTargetFilename(fileName string) []*protoTypeInfo {
-	return g.targetFileLookup[fileName]
-}
-
-func (g *generatorPlan) GetAllTargetFilenames() []string {
-	keys := make([]string, 0, len(g.targetFileLookup))
-	for k, _ := range g.targetFileLookup {
-		keys = append(keys, k)
+func (g *generatorPlan) GetAll() []*protoTypeInfo {
+	var values []*protoTypeInfo
+	for _, value := range g.typeLookup {
+		values = append(values, value)
 	}
-
-	// Sorting makes the order deterministic. Important for unit tests.
-	sort.Strings(keys)
-	return keys
+	return values
 }
 
 func (g *generatorPlan) LookupType(typeName string) *protoTypeInfo {
 	return g.typeLookup[typeName]
 }
 
-func (b *generatorPlan) String() string {
+func (g *generatorPlan) String() string {
 	result := ""
-	for _, value := range b.targetFileLookup {
-		for _, tInfo := range value {
-			result += "[" + tInfo.String() + "]"
-		}
+	for _, tInfo := range g.typeLookup {
+		result += "[" + tInfo.String() + "]"
 	}
 	return result
 }
